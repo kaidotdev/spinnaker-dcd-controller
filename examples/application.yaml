@@ -1,0 +1,6 @@
+apiVersion: spinnaker.kaidotdev.github.io/v1
+kind: Application
+metadata:
+  name: sample
+spec:
+  email: sample@kaidotdev.github.io

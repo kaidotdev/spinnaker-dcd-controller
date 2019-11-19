@@ -1,0 +1,72 @@
+package main
+
+import (
+	"flag"
+	"net/http"
+	"os"
+	"spinnaker-dcd-controller/controllers"
+
+	applicationV1 "spinnaker-dcd-controller/api/v1"
+
+	"github.com/spinnaker/roer/spinnaker"
+	"k8s.io/apimachinery/pkg/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	// +kubebuilder:scaffold:imports
+)
+
+var (
+	scheme   = runtime.NewScheme()
+	setupLog = ctrl.Log.WithName("setup")
+)
+
+func init() {
+	_ = clientgoscheme.AddToScheme(scheme)
+
+	_ = applicationV1.AddToScheme(scheme)
+	// +kubebuilder:scaffold:scheme
+}
+
+func main() {
+	var metricsAddr string
+	var enableLeaderElection bool
+	var spinnakerEndpoint string
+	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
+	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
+		"Enable leader election for controller manager.")
+	flag.StringVar(&spinnakerEndpoint, "spinnaker-endpoint", "http://spin-gate.spinnaker.svc.cluster.local:8084", "The endpoint of Spinnaker Gate.")
+	flag.Parse()
+
+	ctrl.SetLogger(zap.Logger(true))
+
+	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+		Scheme:             scheme,
+		MetricsBindAddress: metricsAddr,
+		LeaderElection:     enableLeaderElection,
+		Port:               9443,
+	})
+	if err != nil {
+		setupLog.Error(err, "unable to start manager")
+		os.Exit(1)
+	}
+
+	if err := (&controllers.ApplicationReconciler{
+		Client:          mgr.GetClient(),
+		Log:             ctrl.Log.WithName("controllers").WithName("Application"),
+		Scheme:          mgr.GetScheme(),
+		Recorder:        mgr.GetEventRecorderFor("spinnaker-dcd-controller"),
+		SpinnakerClient: spinnaker.New(spinnakerEndpoint, &http.Client{}),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Application")
+		os.Exit(1)
+	}
+	// +kubebuilder:scaffold:builder
+
+	setupLog.Info("starting manager")
+	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+		setupLog.Error(err, "problem running manager")
+		os.Exit(1)
+	}
+}

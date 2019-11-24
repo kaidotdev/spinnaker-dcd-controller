@@ -30,22 +30,9 @@ spec:
         metadata:
           type: object
         spec:
-          description: ApplicationSpec defines the desired state of Application
-          properties:
-            dataSources:
-              description: DataSources defines dataSources
-              properties:
-                disabled:
-                  items:
-                    type: string
-                  type: array
-                enabled:
-                  items:
-                    type: string
-                  type: array
-              type: object
-            email:
-              type: string
+          description: RawMessage is a raw encoded JSON value. It implements Marshaler
+            and Unmarshaler and can be used to delay JSON decoding or precompute a
+            JSON encoding.
           type: object
         status:
           description: ApplicationStatus defines the observed state of Application

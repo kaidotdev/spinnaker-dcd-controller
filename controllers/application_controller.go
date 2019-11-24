@@ -107,8 +107,7 @@ func (r *ApplicationReconciler) buildDeleteTask(applicationName string, applicat
 			spinnaker.ApplicationJob{
 				Application: func() map[string]interface{} {
 					var m map[string]interface{}
-					b, _ := json.Marshal(application.Spec)
-					_ = json.Unmarshal(b, &m)
+					_ = json.Unmarshal(application.Spec, &m)
 					m["name"] = applicationName
 					return m
 				}(),
@@ -126,8 +125,7 @@ func (r *ApplicationReconciler) buildCreateTask(applicationName string, applicat
 			spinnaker.ApplicationJob{
 				Application: func() map[string]interface{} {
 					var m map[string]interface{}
-					b, _ := json.Marshal(application.Spec)
-					_ = json.Unmarshal(b, &m)
+					_ = json.Unmarshal(application.Spec, &m)
 					m["name"] = applicationName
 					return m
 				}(),

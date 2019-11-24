@@ -1,18 +1,10 @@
 package v1
 
-import metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+import (
+	"encoding/json"
 
-// ApplicationSpec defines the desired state of Application
-type ApplicationSpec struct {
-	Email       string      `json:"email,omitempty"`
-	DataSources DataSources `json:"dataSources,omitempty"`
-}
-
-// DataSources defines dataSources
-type DataSources struct {
-	Disabled []string `json:"disabled,omitempty"`
-	Enabled  []string `json:"enabled,omitempty"`
-}
+	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
 
 // ApplicationStatus defines the observed state of Application
 type ApplicationStatus struct{}
@@ -24,7 +16,7 @@ type Application struct {
 	metaV1.TypeMeta   `json:",inline"`
 	metaV1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   ApplicationSpec   `json:"spec,omitempty"`
+	Spec   json.RawMessage   `json:"spec,omitempty"`
 	Status ApplicationStatus `json:"status,omitempty"`
 }
 

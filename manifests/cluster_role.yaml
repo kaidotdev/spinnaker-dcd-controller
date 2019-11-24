@@ -23,3 +23,43 @@ rules:
       - get
       - patch
       - update
+  - apiGroups:
+      - spinnaker.kaidotdev.github.io
+    resources:
+      - pipelinetemplates
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - spinnaker.kaidotdev.github.io
+    resources:
+      - pipelinetemplates/status
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - spinnaker.kaidotdev.github.io
+    resources:
+      - pipelines
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - spinnaker.kaidotdev.github.io
+    resources:
+      - pipelines/status
+    verbs:
+      - get
+      - patch
+      - update

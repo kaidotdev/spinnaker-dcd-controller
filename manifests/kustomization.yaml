@@ -2,6 +2,8 @@ namespace: kube-system
 
 resources:
   - crd/spinnaker.kaidotdev.github.io_applications.yaml
+  - crd/spinnaker.kaidotdev.github.io_pipelinetemplates.yaml
+  - crd/spinnaker.kaidotdev.github.io_pipelines.yaml
   # +kubebuilder:scaffold:crdkustomizeresource
   - cluster_role.yaml
   - cluster_role_binding.yaml

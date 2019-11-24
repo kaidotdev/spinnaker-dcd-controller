@@ -1,0 +1,21 @@
+apiVersion: spinnaker.kaidotdev.github.io/v1
+kind: PipelineTemplate
+metadata:
+  name: sample
+spec:
+  schema: "1"
+  id: sample-deploy
+  metadata:
+    description: This template does not have a description
+    name: deploy
+    owner: anonymous
+    scopes:
+      - sample
+  protect: false
+  variables:
+    - name: triggerEnabled
+      defaultValue: true
+  configuration:
+    concurrentExecutions:
+      limitConcurrent: true
+      parallel: false

@@ -62,6 +62,26 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "Application")
 		os.Exit(1)
 	}
+	if err := (&controllers.PipelineTemplateReconciler{
+		Client:          mgr.GetClient(),
+		Log:             ctrl.Log.WithName("controllers").WithName("PipelineTemplate"),
+		Scheme:          mgr.GetScheme(),
+		Recorder:        mgr.GetEventRecorderFor("spinnaker-dcd-controller"),
+		SpinnakerClient: spinnaker.New(spinnakerEndpoint, &http.Client{}),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "PipelineTemplate")
+		os.Exit(1)
+	}
+	if err := (&controllers.PipelineReconciler{
+		Client:          mgr.GetClient(),
+		Log:             ctrl.Log.WithName("controllers").WithName("Pipeline"),
+		Scheme:          mgr.GetScheme(),
+		Recorder:        mgr.GetEventRecorderFor("spinnaker-dcd-controller"),
+		SpinnakerClient: spinnaker.New(spinnakerEndpoint, &http.Client{}),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Pipeline")
+		os.Exit(1)
+	}
 	// +kubebuilder:scaffold:builder
 
 	setupLog.Info("starting manager")

@@ -3,7 +3,7 @@ package controllers
 import (
 	"context"
 	"encoding/json"
-	applicationV1 "spinnaker-dcd-controller/api/v1"
+	v1 "spinnaker-dcd-controller/api/v1"
 
 	"github.com/spinnaker/roer/spinnaker"
 
@@ -23,10 +23,8 @@ type ApplicationReconciler struct {
 	SpinnakerClient spinnaker.Client
 }
 
-const myFinalizerName = "spinnaker.finalizers.kaidotdev.github.io"
-
 func (r *ApplicationReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	application := &applicationV1.Application{}
+	application := &v1.Application{}
 	ctx := context.Background()
 	logger := r.Log.WithValues("application", req.NamespacedName)
 	if err := r.Get(ctx, req.NamespacedName, application); err != nil {
@@ -36,10 +34,18 @@ func (r *ApplicationReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		return ctrl.Result{}, err
 	}
 
-	if application.ObjectMeta.DeletionTimestamp.IsZero() {
+	if application.Status.ApplicationName == "" {
 		task := r.buildCreateTask(req.Name, application)
-		r.submitTask(req.Name, task, logger)
+		if err := r.submitTask(req.Name, task, logger); err != nil {
+			return ctrl.Result{}, err
+		}
+		application.Status.ApplicationName = req.Name
+		if err := r.Update(context.Background(), application); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
 
+	if application.ObjectMeta.DeletionTimestamp.IsZero() {
 		if !containsString(application.ObjectMeta.Finalizers, myFinalizerName) {
 			application.ObjectMeta.Finalizers = append(application.ObjectMeta.Finalizers, myFinalizerName)
 			if err := r.Update(context.Background(), application); err != nil {
@@ -49,7 +55,9 @@ func (r *ApplicationReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	} else {
 		if containsString(application.ObjectMeta.Finalizers, myFinalizerName) {
 			task := r.buildDeleteTask(req.Name, application)
-			r.submitTask(req.Name, task, logger)
+			if err := r.submitTask(req.Name, task, logger); err != nil {
+				return ctrl.Result{}, err
+			}
 
 			application.ObjectMeta.Finalizers = removeString(application.ObjectMeta.Finalizers, myFinalizerName)
 			if err := r.Update(context.Background(), application); err != nil {
@@ -63,33 +71,14 @@ func (r *ApplicationReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	return ctrl.Result{}, nil
 }
 
-func containsString(slice []string, s string) bool {
-	for _, item := range slice {
-		if item == s {
-			return true
-		}
-	}
-	return false
-}
-
-func removeString(slice []string, s string) (result []string) {
-	for _, item := range slice {
-		if item == s {
-			continue
-		}
-		result = append(result, item)
-	}
-	return
-}
-
-func (r *ApplicationReconciler) submitTask(applicationName string, task spinnaker.Task, logger logr.Logger) {
+func (r *ApplicationReconciler) submitTask(applicationName string, task spinnaker.Task, logger logr.Logger) error {
 	ref, err := r.SpinnakerClient.ApplicationSubmitTask(applicationName, task)
 	if err != nil {
-		logger.Error(err, "Failed to ApplicationSubmitTask")
+		return err
 	}
 	response, err := r.SpinnakerClient.PollTaskStatus(ref.Ref, 0)
 	if err != nil {
-		logger.Error(err, "Failed to PollTaskStatus")
+		return err
 	}
 
 	if response.Status == "TERMINAL" {
@@ -97,9 +86,11 @@ func (r *ApplicationReconciler) submitTask(applicationName string, task spinnake
 	} else {
 		logger.V(1).Info("Task Completed", "status", response.Status)
 	}
+
+	return nil
 }
 
-func (r *ApplicationReconciler) buildDeleteTask(applicationName string, application *applicationV1.Application) spinnaker.Task {
+func (r *ApplicationReconciler) buildDeleteTask(applicationName string, application *v1.Application) spinnaker.Task {
 	return spinnaker.Task{
 		Application: applicationName,
 		Description: "Delete Application: " + applicationName,
@@ -117,7 +108,7 @@ func (r *ApplicationReconciler) buildDeleteTask(applicationName string, applicat
 	}
 }
 
-func (r *ApplicationReconciler) buildCreateTask(applicationName string, application *applicationV1.Application) spinnaker.Task {
+func (r *ApplicationReconciler) buildCreateTask(applicationName string, application *v1.Application) spinnaker.Task {
 	return spinnaker.Task{
 		Application: applicationName,
 		Description: "Create Application: " + applicationName,
@@ -136,5 +127,5 @@ func (r *ApplicationReconciler) buildCreateTask(applicationName string, applicat
 }
 
 func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).For(&applicationV1.Application{}).Complete(r)
+	return ctrl.NewControllerManagedBy(mgr).For(&v1.Application{}).Complete(r)
 }

@@ -7,7 +7,9 @@ import (
 )
 
 // ApplicationStatus defines the observed state of Application
-type ApplicationStatus struct{}
+type ApplicationStatus struct {
+	ApplicationName string `json:"applicationName,omitempty"`
+}
 
 // +kubebuilder:object:root=true
 

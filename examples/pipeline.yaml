@@ -1,0 +1,18 @@
+apiVersion: spinnaker.kaidotdev.github.io/v1
+kind: Pipeline
+metadata:
+  name: sample
+spec:
+  schema: "1"
+  pipeline:
+    application: sample
+    name: deploy
+    template:
+      source: spinnaker://sample-deploy
+    variables:
+      triggerEnabled: true
+  configuration:
+    inherit:
+      - expectedArtifacts
+      - triggers
+      - parameters

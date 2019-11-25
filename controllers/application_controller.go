@@ -8,6 +8,7 @@ import (
 	"github.com/spinnaker/roer/spinnaker"
 
 	"github.com/go-logr/logr"
+	coreV1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
@@ -43,6 +44,8 @@ func (r *ApplicationReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		if err := r.Update(context.Background(), application); err != nil {
 			return ctrl.Result{}, err
 		}
+		r.Recorder.Eventf(application, coreV1.EventTypeNormal, "SuccessfulCreated", "Created application: %q", req.Name)
+		logger.V(1).Info("create", "application", application)
 	}
 
 	if application.ObjectMeta.DeletionTimestamp.IsZero() {
@@ -63,6 +66,8 @@ func (r *ApplicationReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 			if err := r.Update(context.Background(), application); err != nil {
 				return ctrl.Result{}, err
 			}
+			r.Recorder.Eventf(application, coreV1.EventTypeNormal, "SuccessfulDeleted", "Deleted application: %q", req.Name)
+			logger.V(1).Info("delete", "application", application)
 		}
 
 		return ctrl.Result{}, nil

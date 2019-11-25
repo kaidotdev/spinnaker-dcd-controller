@@ -9,6 +9,7 @@ import (
 	"github.com/spinnaker/roer/spinnaker"
 
 	"github.com/go-logr/logr"
+	coreV1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
@@ -45,6 +46,8 @@ func (r *PipelineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result, e
 		if err := r.Update(context.Background(), pipelineTemplate); err != nil {
 			return ctrl.Result{}, err
 		}
+		r.Recorder.Eventf(pipelineTemplate, coreV1.EventTypeNormal, "SuccessfulCreated", "Created pipeline template: %q", req.Name)
+		logger.V(1).Info("create", "pipeline template", pipelineTemplate)
 	}
 
 	if pipelineTemplate.ObjectMeta.DeletionTimestamp.IsZero() {
@@ -64,6 +67,8 @@ func (r *PipelineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result, e
 			if err := r.Update(context.Background(), pipelineTemplate); err != nil {
 				return ctrl.Result{}, err
 			}
+			r.Recorder.Eventf(pipelineTemplate, coreV1.EventTypeNormal, "SuccessfulDeleted", "Deleted pipeline template: %q", req.Name)
+			logger.V(1).Info("delete", "pipeline template", pipelineTemplate)
 		}
 
 		return ctrl.Result{}, nil

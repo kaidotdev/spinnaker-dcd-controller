@@ -39,13 +39,15 @@ func (r *PipelineReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, err
 	}
 
-	if pipeline.Status.ApplicationName == "" && pipeline.Status.ID == "" {
+	if pipeline.Status.SpinnakerResource.ApplicationName == "" && pipeline.Status.SpinnakerResource.ID == "" {
 		applicationName, id, err := r.savePipeline(pipeline, logger)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
-		pipeline.Status.ApplicationName = *applicationName
-		pipeline.Status.ID = *id
+		pipeline.Status.SpinnakerResource.ApplicationName = *applicationName
+		pipeline.Status.SpinnakerResource.ID = *id
+		pipeline.Status.Phase = "Deployed"
+
 		if err := r.Update(context.Background(), pipeline); err != nil {
 			return ctrl.Result{}, err
 		}
@@ -97,7 +99,7 @@ func (r *PipelineReconciler) savePipeline(pipeline *v1.Pipeline, logger logr.Log
 }
 
 func (r *PipelineReconciler) deletePipeline(pipeline *v1.Pipeline, logger logr.Logger) error {
-	return r.SpinnakerClient.DeletePipeline(pipeline.Status.ApplicationName, pipeline.Status.ID)
+	return r.SpinnakerClient.DeletePipeline(pipeline.Status.SpinnakerResource.ApplicationName, pipeline.Status.SpinnakerResource.ID)
 }
 
 func (r *PipelineReconciler) SetupWithManager(mgr ctrl.Manager) error {

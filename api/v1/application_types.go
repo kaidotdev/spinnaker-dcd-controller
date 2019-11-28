@@ -6,13 +6,20 @@ import (
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// SpinnakerApplicationResource defines the resource of Spinnaker
+type SpinnakerApplicationResource struct {
+	ApplicationName string `json:"applicationName,omitempty"`
+}
+
 // ApplicationStatus defines the observed state of Application
 type ApplicationStatus struct {
-	ApplicationName string `json:"applicationName,omitempty"`
+	SpinnakerResource SpinnakerApplicationResource `json:"spinnakerResource,omitempty"`
+	Phase             string                       `json:"phase,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:scope=Cluster
+// +kubebuilder:printcolumn:name="PHASE",type=string,JSONPath=`.status.phase`
 
 // Application is the schema for Spinnaker Application
 type Application struct {

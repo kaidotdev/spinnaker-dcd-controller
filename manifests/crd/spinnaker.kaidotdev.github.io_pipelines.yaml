@@ -8,6 +8,10 @@ metadata:
   creationTimestamp: null
   name: pipelines.spinnaker.kaidotdev.github.io
 spec:
+  additionalPrinterColumns:
+  - JSONPath: .status.phase
+    name: PHASE
+    type: string
   group: spinnaker.kaidotdev.github.io
   names:
     kind: Pipeline
@@ -15,6 +19,7 @@ spec:
     plural: pipelines
     singular: pipeline
   scope: Cluster
+  subresources: {}
   validation:
     openAPIV3Schema:
       description: Pipeline is the schema for Spinnaker Pipeline
@@ -39,10 +44,16 @@ spec:
         status:
           description: PipelineStatus defines the observed state of Pipeline
           properties:
-            applicationName:
+            phase:
               type: string
-            id:
-              type: string
+            spinnakerResource:
+              description: SpinnakerPipelineResource defines the resource of Spinnaker
+              properties:
+                applicationName:
+                  type: string
+                id:
+                  type: string
+              type: object
           type: object
       type: object
   version: v1

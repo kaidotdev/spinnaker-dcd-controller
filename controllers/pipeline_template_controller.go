@@ -36,12 +36,13 @@ func (r *PipelineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result, e
 		return ctrl.Result{}, err
 	}
 
-	if pipelineTemplate.Status.ID == "" {
+	if pipelineTemplate.Status.SpinnakerResource.ID == "" {
 		id, err := r.publishTemplate(pipelineTemplate, logger)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
-		pipelineTemplate.Status.ID = *id
+		pipelineTemplate.Status.SpinnakerResource.ID = *id
+		pipelineTemplate.Status.Phase = "Deployed"
 
 		if err := r.Update(context.Background(), pipelineTemplate); err != nil {
 			return ctrl.Result{}, err
@@ -110,7 +111,7 @@ func (r *PipelineTemplateReconciler) publishTemplate(pipelineTemplate *v1.Pipeli
 }
 
 func (r *PipelineTemplateReconciler) deleteTemplate(pipelineTemplate *v1.PipelineTemplate, logger logr.Logger) error {
-	id := pipelineTemplate.Status.ID
+	id := pipelineTemplate.Status.SpinnakerResource.ID
 
 	ref, err := r.SpinnakerClient.DeleteTemplate(id)
 	if err != nil {

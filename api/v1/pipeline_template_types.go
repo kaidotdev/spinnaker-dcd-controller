@@ -6,13 +6,20 @@ import (
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// SpinnakerPipelineTemplateResource defines the resource of Spinnaker
+type SpinnakerPipelineTemplateResource struct {
+	ID string `json:"id,omitempty"`
+}
+
 // PipelineTemplateStatus defines the observed state of PipelineTemplate
 type PipelineTemplateStatus struct {
-	ID string `json:"id,omitempty"`
+	SpinnakerResource SpinnakerPipelineTemplateResource `json:"spinnakerResource,omitempty"`
+	Phase             string                            `json:"phase,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:scope=Cluster
+// +kubebuilder:printcolumn:name="PHASE",type=string,JSONPath=`.status.phase`
 
 // PipelineTemplate is the schema for Spinnaker PipelineTemplate
 type PipelineTemplate struct {

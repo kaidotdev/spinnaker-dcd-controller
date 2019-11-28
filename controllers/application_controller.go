@@ -35,12 +35,14 @@ func (r *ApplicationReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		return ctrl.Result{}, err
 	}
 
-	if application.Status.ApplicationName == "" {
+	if application.Status.SpinnakerResource.ApplicationName == "" {
 		task := r.buildCreateTask(req.Name, application)
 		if err := r.submitTask(req.Name, task, logger); err != nil {
 			return ctrl.Result{}, err
 		}
-		application.Status.ApplicationName = req.Name
+		application.Status.SpinnakerResource.ApplicationName = req.Name
+		application.Status.Phase = "Deployed"
+
 		if err := r.Update(context.Background(), application); err != nil {
 			return ctrl.Result{}, err
 		}

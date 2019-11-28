@@ -8,6 +8,10 @@ metadata:
   creationTimestamp: null
   name: applications.spinnaker.kaidotdev.github.io
 spec:
+  additionalPrinterColumns:
+  - JSONPath: .status.phase
+    name: PHASE
+    type: string
   group: spinnaker.kaidotdev.github.io
   names:
     kind: Application
@@ -15,6 +19,7 @@ spec:
     plural: applications
     singular: application
   scope: Cluster
+  subresources: {}
   validation:
     openAPIV3Schema:
       description: Application is the schema for Spinnaker Application
@@ -39,8 +44,14 @@ spec:
         status:
           description: ApplicationStatus defines the observed state of Application
           properties:
-            applicationName:
+            phase:
               type: string
+            spinnakerResource:
+              description: SpinnakerApplicationResource defines the resource of Spinnaker
+              properties:
+                applicationName:
+                  type: string
+              type: object
           type: object
       type: object
   version: v1

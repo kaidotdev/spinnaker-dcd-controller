@@ -12,7 +12,7 @@ spec:
     listKind: ApplicationList
     plural: applications
     singular: application
-  scope: ""
+  scope: Cluster
   validation:
     openAPIV3Schema:
       description: Application is the schema for Spinnaker Application

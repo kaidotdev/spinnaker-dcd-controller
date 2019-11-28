@@ -12,6 +12,7 @@ type PipelineTemplateStatus struct {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:resource:scope=Cluster
 
 // PipelineTemplate is the schema for Spinnaker PipelineTemplate
 type PipelineTemplate struct {

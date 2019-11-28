@@ -12,6 +12,7 @@ type ApplicationStatus struct {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:resource:scope=Cluster
 
 // Application is the schema for Spinnaker Application
 type Application struct {

@@ -12,7 +12,7 @@ spec:
     listKind: PipelineTemplateList
     plural: pipelinetemplates
     singular: pipelinetemplate
-  scope: ""
+  scope: Cluster
   validation:
     openAPIV3Schema:
       description: PipelineTemplate is the schema for Spinnaker PipelineTemplate

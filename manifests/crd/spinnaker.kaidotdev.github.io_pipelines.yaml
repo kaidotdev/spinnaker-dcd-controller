@@ -12,7 +12,7 @@ spec:
     listKind: PipelineList
     plural: pipelines
     singular: pipeline
-  scope: ""
+  scope: Cluster
   validation:
     openAPIV3Schema:
       description: Pipeline is the schema for Spinnaker Pipeline

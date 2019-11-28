@@ -13,6 +13,7 @@ type PipelineStatus struct {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:resource:scope=Cluster
 
 // Pipeline is the schema for Spinnaker Pipeline
 type Pipeline struct {

@@ -1,3 +1,5 @@
+namespace: default
+
 resources:
   - crd/spinnaker.kaidotdev.github.io_applications.yaml
   - crd/spinnaker.kaidotdev.github.io_pipelinetemplates.yaml

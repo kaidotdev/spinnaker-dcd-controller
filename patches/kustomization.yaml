@@ -1,0 +1,10 @@
+namespace: spinnaker-dcd-controller
+
+bases:
+  - ../manifests
+
+resources:
+  - namespace.yaml
+
+patchesStrategicMerge:
+  - deployment.yaml

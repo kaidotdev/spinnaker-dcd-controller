@@ -27,8 +27,8 @@ type PipelineTemplateReconciler struct {
 
 func (r *PipelineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	pipelineTemplate := &v1.PipelineTemplate{}
-	ctx := context.Background()
 	logger := r.Log.WithValues("pipelineTemplate", req.NamespacedName)
+	ctx := context.Background()
 	if err := r.Get(ctx, req.NamespacedName, pipelineTemplate); err != nil {
 		if errors.IsNotFound(err) {
 			return ctrl.Result{}, nil
@@ -44,7 +44,7 @@ func (r *PipelineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result, e
 		pipelineTemplate.Status.SpinnakerResource.ID = *id
 		pipelineTemplate.Status.Phase = "Deployed"
 
-		if err := r.Update(context.Background(), pipelineTemplate); err != nil {
+		if err := r.Update(ctx, pipelineTemplate); err != nil {
 			return ctrl.Result{}, err
 		}
 		r.Recorder.Eventf(pipelineTemplate, coreV1.EventTypeNormal, "SuccessfulCreated", "Created pipeline template: %q", req.Name)
@@ -54,7 +54,7 @@ func (r *PipelineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result, e
 	if pipelineTemplate.ObjectMeta.DeletionTimestamp.IsZero() {
 		if !containsString(pipelineTemplate.ObjectMeta.Finalizers, myFinalizerName) {
 			pipelineTemplate.ObjectMeta.Finalizers = append(pipelineTemplate.ObjectMeta.Finalizers, myFinalizerName)
-			if err := r.Update(context.Background(), pipelineTemplate); err != nil {
+			if err := r.Update(ctx, pipelineTemplate); err != nil {
 				return ctrl.Result{}, err
 			}
 		}
@@ -65,7 +65,7 @@ func (r *PipelineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result, e
 			}
 
 			pipelineTemplate.ObjectMeta.Finalizers = removeString(pipelineTemplate.ObjectMeta.Finalizers, myFinalizerName)
-			if err := r.Update(context.Background(), pipelineTemplate); err != nil {
+			if err := r.Update(ctx, pipelineTemplate); err != nil {
 				return ctrl.Result{}, err
 			}
 			r.Recorder.Eventf(pipelineTemplate, coreV1.EventTypeNormal, "SuccessfulDeleted", "Deleted pipeline template: %q", req.Name)

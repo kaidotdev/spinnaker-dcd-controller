@@ -48,7 +48,7 @@ func (r *PipelineReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		pipeline.Status.SpinnakerResource.ID = *id
 		pipeline.Status.Phase = "Deployed"
 
-		if err := r.Update(context.Background(), pipeline); err != nil {
+		if err := r.Update(ctx, pipeline); err != nil {
 			return ctrl.Result{}, err
 		}
 		r.Recorder.Eventf(pipeline, coreV1.EventTypeNormal, "SuccessfulCreated", "Created pipeline: %q", req.Name)
@@ -58,7 +58,7 @@ func (r *PipelineReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	if pipeline.ObjectMeta.DeletionTimestamp.IsZero() {
 		if !containsString(pipeline.ObjectMeta.Finalizers, myFinalizerName) {
 			pipeline.ObjectMeta.Finalizers = append(pipeline.ObjectMeta.Finalizers, myFinalizerName)
-			if err := r.Update(context.Background(), pipeline); err != nil {
+			if err := r.Update(ctx, pipeline); err != nil {
 				return ctrl.Result{}, err
 			}
 		}
@@ -69,7 +69,7 @@ func (r *PipelineReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			}
 
 			pipeline.ObjectMeta.Finalizers = removeString(pipeline.ObjectMeta.Finalizers, myFinalizerName)
-			if err := r.Update(context.Background(), pipeline); err != nil {
+			if err := r.Update(ctx, pipeline); err != nil {
 				return ctrl.Result{}, err
 			}
 			r.Recorder.Eventf(pipeline, coreV1.EventTypeNormal, "SuccessfulDeleted", "Deleted pipeline: %q", req.Name)

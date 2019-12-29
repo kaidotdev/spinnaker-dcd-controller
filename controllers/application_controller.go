@@ -43,7 +43,7 @@ func (r *ApplicationReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		application.Status.SpinnakerResource.ApplicationName = req.Name
 		application.Status.Phase = "Deployed"
 
-		if err := r.Update(context.Background(), application); err != nil {
+		if err := r.Update(ctx, application); err != nil {
 			return ctrl.Result{}, err
 		}
 		r.Recorder.Eventf(application, coreV1.EventTypeNormal, "SuccessfulCreated", "Created application: %q", req.Name)
@@ -53,7 +53,7 @@ func (r *ApplicationReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	if application.ObjectMeta.DeletionTimestamp.IsZero() {
 		if !containsString(application.ObjectMeta.Finalizers, myFinalizerName) {
 			application.ObjectMeta.Finalizers = append(application.ObjectMeta.Finalizers, myFinalizerName)
-			if err := r.Update(context.Background(), application); err != nil {
+			if err := r.Update(ctx, application); err != nil {
 				return ctrl.Result{}, err
 			}
 		}
@@ -65,7 +65,7 @@ func (r *ApplicationReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 			}
 
 			application.ObjectMeta.Finalizers = removeString(application.ObjectMeta.Finalizers, myFinalizerName)
-			if err := r.Update(context.Background(), application); err != nil {
+			if err := r.Update(ctx, application); err != nil {
 				return ctrl.Result{}, err
 			}
 			r.Recorder.Eventf(application, coreV1.EventTypeNormal, "SuccessfulDeleted", "Deleted application: %q", req.Name)

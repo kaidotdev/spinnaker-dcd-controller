@@ -6,6 +6,8 @@ import (
 	"os"
 	"spinnaker-dcd-controller/controllers"
 
+	"github.com/sirupsen/logrus"
+
 	applicationV1 "spinnaker-dcd-controller/api/v1"
 
 	"github.com/spinnaker/roer/spinnaker"
@@ -31,10 +33,12 @@ func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
 	var spinnakerEndpoint string
+	var verbose bool
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager.")
 	flag.StringVar(&spinnakerEndpoint, "spinnaker-endpoint", "http://spin-gate.spinnaker.svc.cluster.local:8084", "The endpoint of Spinnaker Gate.")
+	flag.BoolVar(&verbose, "verbose", false, "Make the operation more talkative.")
 	flag.Parse()
 
 	ctrl.SetLogger(zap.Logger(true))
@@ -48,6 +52,10 @@ func main() {
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
+	}
+
+	if verbose {
+		logrus.SetLevel(logrus.DebugLevel)
 	}
 
 	if err := (&controllers.ApplicationReconciler{

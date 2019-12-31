@@ -39,7 +39,7 @@ func (r *PipelineReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, err
 	}
 
-	if pipeline.Status.SpinnakerResource.ApplicationName == "" && pipeline.Status.SpinnakerResource.ID == "" {
+	if pipeline.Status.Phase != "Deployed" {
 		applicationName, id, err := r.savePipeline(pipeline, logger)
 		if err != nil {
 			return ctrl.Result{}, err

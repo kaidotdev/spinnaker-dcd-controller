@@ -35,7 +35,7 @@ func (r *PipelineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result, e
 		return ctrl.Result{}, err
 	}
 
-	if pipelineTemplate.Status.SpinnakerResource.ID == "" {
+	if pipelineTemplate.Status.Phase != "Deployed" {
 		id, err := r.publishTemplate(pipelineTemplate, logger)
 		if err != nil {
 			return ctrl.Result{}, err

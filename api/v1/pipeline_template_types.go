@@ -14,6 +14,7 @@ type SpinnakerPipelineTemplateResource struct {
 // PipelineTemplateStatus defines the observed state of PipelineTemplate
 type PipelineTemplateStatus struct {
 	SpinnakerResource SpinnakerPipelineTemplateResource `json:"spinnakerResource,omitempty"`
+	Hash              [32]byte                          `json:"hash,omitempty"`
 	Phase             string                            `json:"phase,omitempty"`
 }
 

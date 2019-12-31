@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	v1 "spinnaker-dcd-controller/api/v1"
 
@@ -35,12 +36,31 @@ func (r *PipelineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result, e
 		return ctrl.Result{}, err
 	}
 
-	if pipelineTemplate.Status.Phase != "Deployed" {
+	hash := sha256.Sum256(pipelineTemplate.Spec)
+	if pipelineTemplate.Status.Phase == "Deployed" {
+		oldHash := pipelineTemplate.Status.Hash
+		if hash == oldHash {
+			return ctrl.Result{}, nil
+		}
 		id, err := r.publishTemplate(pipelineTemplate, logger)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
-		pipelineTemplate.Status.SpinnakerResource.ID = *id
+		pipelineTemplate.Status.SpinnakerResource.ID = id
+		pipelineTemplate.Status.Hash = hash
+
+		if err := r.Update(ctx, pipelineTemplate); err != nil {
+			return ctrl.Result{}, err
+		}
+		r.Recorder.Eventf(pipelineTemplate, coreV1.EventTypeNormal, "SuccessfulUpdated", "Updated pipeline template: %q", req.Name)
+		logger.V(1).Info("update", "pipeline template", pipelineTemplate)
+	} else {
+		id, err := r.publishTemplate(pipelineTemplate, logger)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		pipelineTemplate.Status.SpinnakerResource.ID = id
+		pipelineTemplate.Status.Hash = hash
 		pipelineTemplate.Status.Phase = "Deployed"
 
 		if err := r.Update(ctx, pipelineTemplate); err != nil {
@@ -77,7 +97,7 @@ func (r *PipelineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result, e
 	return ctrl.Result{}, nil
 }
 
-func (r *PipelineTemplateReconciler) publishTemplate(pipelineTemplate *v1.PipelineTemplate, logger logr.Logger) (*string, error) {
+func (r *PipelineTemplateReconciler) publishTemplate(pipelineTemplate *v1.PipelineTemplate, logger logr.Logger) (string, error) {
 	templateMap := func() map[string]interface{} {
 		var m map[string]interface{}
 		_ = json.Unmarshal(pipelineTemplate.Spec, &m)
@@ -88,12 +108,12 @@ func (r *PipelineTemplateReconciler) publishTemplate(pipelineTemplate *v1.Pipeli
 		TemplateID: id,
 	})
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	response, err := r.SpinnakerClient.PollTaskStatus(ref.Ref, 0)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	if response.Status == "TERMINAL" {
@@ -102,7 +122,7 @@ func (r *PipelineTemplateReconciler) publishTemplate(pipelineTemplate *v1.Pipeli
 		logger.V(1).Info("Task Completed", "status", response.Status)
 	}
 
-	return &id, nil
+	return id, nil
 }
 
 func (r *PipelineTemplateReconciler) deleteTemplate(pipelineTemplate *v1.PipelineTemplate, logger logr.Logger) error {

@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	v1 "spinnaker-dcd-controller/api/v1"
 
@@ -39,13 +40,37 @@ func (r *PipelineReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, err
 	}
 
-	if pipeline.Status.Phase != "Deployed" {
-		applicationName, id, err := r.savePipeline(pipeline, logger)
-		if err != nil {
+	pipelineConfig, err := r.buildPipelineConfig(pipeline)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	hash := sha256.Sum256(pipeline.Spec)
+	if pipeline.Status.Phase == "Deployed" {
+		oldHash := pipeline.Status.Hash
+		if hash == oldHash {
+			return ctrl.Result{}, nil
+		}
+
+		if err := r.SpinnakerClient.SavePipelineConfig(pipelineConfig); err != nil {
 			return ctrl.Result{}, err
 		}
-		pipeline.Status.SpinnakerResource.ApplicationName = *applicationName
-		pipeline.Status.SpinnakerResource.ID = *id
+		pipeline.Status.SpinnakerResource.ApplicationName = pipelineConfig.Application
+		pipeline.Status.SpinnakerResource.ID = pipelineConfig.ID
+		pipeline.Status.Hash = hash
+		if err := r.Update(ctx, pipeline); err != nil {
+			return ctrl.Result{}, err
+		}
+
+		r.Recorder.Eventf(pipeline, coreV1.EventTypeNormal, "SuccessfulUpdated", "Updated pipeline: %q", req.Name)
+		logger.V(1).Info("update", "pipeline", pipeline)
+	} else {
+		if err := r.SpinnakerClient.SavePipelineConfig(pipelineConfig); err != nil {
+			return ctrl.Result{}, err
+		}
+		pipeline.Status.SpinnakerResource.ApplicationName = pipelineConfig.Application
+		pipeline.Status.SpinnakerResource.ID = pipelineConfig.ID
+		pipeline.Status.Hash = hash
 		pipeline.Status.Phase = "Deployed"
 
 		if err := r.Update(ctx, pipeline); err != nil {
@@ -64,7 +89,10 @@ func (r *PipelineReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 	} else {
 		if containsString(pipeline.ObjectMeta.Finalizers, myFinalizerName) {
-			if err := r.deletePipeline(pipeline, logger); err != nil {
+			if err := r.SpinnakerClient.DeletePipeline(
+				pipeline.Status.SpinnakerResource.ApplicationName,
+				pipeline.Status.SpinnakerResource.ID,
+			); err != nil {
 				return ctrl.Result{}, err
 			}
 
@@ -82,24 +110,16 @@ func (r *PipelineReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	return ctrl.Result{}, nil
 }
 
-func (r *PipelineReconciler) savePipeline(pipeline *v1.Pipeline, logger logr.Logger) (*string, *string, error) {
+func (r *PipelineReconciler) buildPipelineConfig(pipeline *v1.Pipeline) (spinnaker.PipelineConfig, error) {
 	var roerConfiguration roer.PipelineConfiguration
 	if err := mapstructure.Decode(func() map[string]interface{} {
 		var m map[string]interface{}
 		_ = json.Unmarshal(pipeline.Spec, &m)
 		return m
 	}(), &roerConfiguration); err != nil {
-		return nil, nil, err
+		return spinnaker.PipelineConfig{}, err
 	}
-
-	if err := r.SpinnakerClient.SavePipelineConfig(roerConfiguration.ToClient()); err != nil {
-		return nil, nil, err
-	}
-	return &roerConfiguration.Pipeline.Application, &roerConfiguration.Pipeline.PipelineConfigID, nil
-}
-
-func (r *PipelineReconciler) deletePipeline(pipeline *v1.Pipeline, logger logr.Logger) error {
-	return r.SpinnakerClient.DeletePipeline(pipeline.Status.SpinnakerResource.ApplicationName, pipeline.Status.SpinnakerResource.ID)
+	return roerConfiguration.ToClient(), nil
 }
 
 func (r *PipelineReconciler) SetupWithManager(mgr ctrl.Manager) error {

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	v1 "spinnaker-dcd-controller/api/v1"
 
-	"github.com/google/uuid"
 	"github.com/spinnaker/roer/spinnaker"
 
 	"github.com/go-logr/logr"
@@ -79,17 +78,13 @@ func (r *PipelineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result, e
 }
 
 func (r *PipelineTemplateReconciler) publishTemplate(pipelineTemplate *v1.PipelineTemplate, logger logr.Logger) (*string, error) {
-	u, err := uuid.NewRandom()
-	if err != nil {
-		return nil, err
-	}
-	id := u.String()
-
-	ref, err := r.SpinnakerClient.PublishTemplate(func() map[string]interface{} {
+	templateMap := func() map[string]interface{} {
 		var m map[string]interface{}
 		_ = json.Unmarshal(pipelineTemplate.Spec, &m)
 		return m
-	}(), spinnaker.PublishTemplateOptions{
+	}()
+	id := templateMap["id"].(string)
+	ref, err := r.SpinnakerClient.PublishTemplate(templateMap, spinnaker.PublishTemplateOptions{
 		TemplateID: id,
 	})
 	if err != nil {

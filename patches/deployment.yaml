@@ -15,3 +15,7 @@ spec:
         - name: controller
           image: spinnaker-dcd-controller
           imagePullPolicy: Never
+          args:
+            - --metrics-addr=0.0.0.0:8080
+            - --enable-leader-election
+            - --verbose

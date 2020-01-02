@@ -44,6 +44,20 @@ spec:
         status:
           description: PipelineTemplateStatus defines the observed state of PipelineTemplate
           properties:
+            conditions:
+              items:
+                description: PipelineTemplateCondition defines condition struct
+                properties:
+                  reason:
+                    type: string
+                  type:
+                    description: PipelineTemplateConditionType defines codition type
+                    type: string
+                required:
+                - reason
+                - type
+                type: object
+              type: array
             hash:
               type: string
             spinnakerResource:

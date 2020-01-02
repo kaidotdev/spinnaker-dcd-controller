@@ -44,6 +44,20 @@ spec:
         status:
           description: ApplicationStatus defines the observed state of Application
           properties:
+            conditions:
+              items:
+                description: ApplicationCondition defines condition struct
+                properties:
+                  reason:
+                    type: string
+                  type:
+                    description: ApplicationConditionType defines codition type
+                    type: string
+                required:
+                - reason
+                - type
+                type: object
+              type: array
             hash:
               type: string
             spinnakerResource:

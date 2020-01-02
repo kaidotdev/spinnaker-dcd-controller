@@ -41,56 +41,72 @@ func (r *ApplicationReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	oldHash := application.Status.Hash
 	if oldHash == "" { // cannot update application
 		task := r.buildCreateTask(req.Name, application)
-		if err := r.submitTask(req.Name, task, logger); err != nil {
+		response, err := r.submitTask(req.Name, task)
+		if err != nil {
 			return ctrl.Result{}, err
 		}
 		application.Status.SpinnakerResource.ApplicationName = req.Name
 		application.Status.Hash = hash
 		application.ObjectMeta.Finalizers = append(application.ObjectMeta.Finalizers, myFinalizerName)
+		if response.Status == "TERMINAL" {
+			application.Status.Conditions = append(application.Status.Conditions, v1.ApplicationCondition{
+				Type:   v1.ApplicationCreationFailed,
+				Reason: response.ExtractRetrofitError().ResponseBody,
+			})
+		} else {
+			application.Status.Conditions = append(application.Status.Conditions, v1.ApplicationCondition{
+				Type: v1.ApplicationCreationComplete,
+			})
+			r.Recorder.Eventf(application, coreV1.EventTypeNormal, "SuccessfulCreated", "Created application: %q", req.Name)
+			logger.V(1).Info("create", "application", application)
+		}
 
 		if err := r.Update(ctx, application); err != nil {
 			return ctrl.Result{}, err
 		}
-		r.Recorder.Eventf(application, coreV1.EventTypeNormal, "SuccessfulCreated", "Created application: %q", req.Name)
-		logger.V(1).Info("create", "application", application)
 	}
 
 	if !application.ObjectMeta.DeletionTimestamp.IsZero() {
 		if containsString(application.ObjectMeta.Finalizers, myFinalizerName) {
 			task := r.buildDeleteTask(req.Name, application)
-			if err := r.submitTask(req.Name, task, logger); err != nil {
+			response, err := r.submitTask(req.Name, task)
+			if err != nil {
 				return ctrl.Result{}, err
 			}
 
 			application.ObjectMeta.Finalizers = removeString(application.ObjectMeta.Finalizers, myFinalizerName)
+			if response.Status == "TERMINAL" {
+				application.Status.Conditions = append(application.Status.Conditions, v1.ApplicationCondition{
+					Type:   v1.ApplicationDeletionFailed,
+					Reason: response.ExtractRetrofitError().ResponseBody,
+				})
+			} else {
+				application.Status.Conditions = append(application.Status.Conditions, v1.ApplicationCondition{
+					Type: v1.ApplicationDeletionComplete,
+				})
+				r.Recorder.Eventf(application, coreV1.EventTypeNormal, "SuccessfulDeleted", "Deleted application: %q", req.Name)
+				logger.V(1).Info("delete", "application", application)
+			}
 			if err := r.Update(ctx, application); err != nil {
 				return ctrl.Result{}, err
 			}
-			r.Recorder.Eventf(application, coreV1.EventTypeNormal, "SuccessfulDeleted", "Deleted application: %q", req.Name)
-			logger.V(1).Info("delete", "application", application)
 		}
 	}
 
 	return ctrl.Result{}, nil
 }
 
-func (r *ApplicationReconciler) submitTask(applicationName string, task spinnaker.Task, logger logr.Logger) error {
+func (r *ApplicationReconciler) submitTask(applicationName string, task spinnaker.Task) (*spinnaker.ExecutionResponse, error) {
 	ref, err := r.SpinnakerClient.ApplicationSubmitTask(applicationName, task)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	response, err := r.SpinnakerClient.PollTaskStatus(ref.Ref, 0)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	if response.Status == "TERMINAL" {
-		logger.V(1).Info("Task Terminated", "response", response)
-	} else {
-		logger.V(1).Info("Task Completed", "status", response.Status)
-	}
-
-	return nil
+	return response, nil
 }
 
 func (r *ApplicationReconciler) buildDeleteTask(applicationName string, application *v1.Application) spinnaker.Task {

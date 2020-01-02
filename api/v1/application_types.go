@@ -11,9 +11,30 @@ type SpinnakerApplicationResource struct {
 	ApplicationName string `json:"applicationName,omitempty"`
 }
 
+// ApplicationConditionType defines codition type
+type ApplicationConditionType string
+
+const (
+	// ApplicationCreationComplete means creation has finished
+	ApplicationCreationComplete ApplicationConditionType = "CreationComplete"
+	// ApplicationCreationFailed means creation has failed
+	ApplicationCreationFailed ApplicationConditionType = "CreationFailed"
+	// ApplicationDeletionComplete means deletion has finished
+	ApplicationDeletionComplete ApplicationConditionType = "DeletionComplete"
+	// ApplicationDeletionFailed means deletion has failed
+	ApplicationDeletionFailed ApplicationConditionType = "DeletionFailed"
+)
+
+// ApplicationCondition defines condition struct
+type ApplicationCondition struct {
+	Type   ApplicationConditionType `json:"type"`
+	Reason string                   `json:"reason"`
+}
+
 // ApplicationStatus defines the observed state of Application
 type ApplicationStatus struct {
 	SpinnakerResource SpinnakerApplicationResource `json:"spinnakerResource,omitempty"`
+	Conditions        []ApplicationCondition       `json:"conditions,omitempty"`
 	Hash              string                       `json:"hash,omitempty"`
 }
 

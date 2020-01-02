@@ -40,7 +40,7 @@ func (r *PipelineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result, e
 	hash := fmt.Sprintf("%x", sha256.Sum256(pipelineTemplate.Spec))
 	oldHash := pipelineTemplate.Status.Hash
 	if hash != oldHash {
-		id, err := r.publishTemplate(pipelineTemplate, logger)
+		id, response, err := r.publishTemplate(pipelineTemplate)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -49,33 +49,54 @@ func (r *PipelineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result, e
 		if !containsString(pipelineTemplate.ObjectMeta.Finalizers, myFinalizerName) {
 			pipelineTemplate.ObjectMeta.Finalizers = append(pipelineTemplate.ObjectMeta.Finalizers, myFinalizerName)
 		}
+		if response.Status == "TERMINAL" {
+			pipelineTemplate.Status.Conditions = append(pipelineTemplate.Status.Conditions, v1.PipelineTemplateCondition{
+				Type:   v1.PipelineTemplatePublishingFailed,
+				Reason: response.ExtractRetrofitError().ResponseBody,
+			})
+		} else {
+			pipelineTemplate.Status.Conditions = append(pipelineTemplate.Status.Conditions, v1.PipelineTemplateCondition{
+				Type: v1.PipelineTemplatePublishingComplete,
+			})
+			r.Recorder.Eventf(pipelineTemplate, coreV1.EventTypeNormal, "SuccessfulPublished", "Published pipeline template: %q", req.Name)
+			logger.V(1).Info("publish", "pipeline template", pipelineTemplate)
+		}
 
 		if err := r.Update(ctx, pipelineTemplate); err != nil {
 			return ctrl.Result{}, err
 		}
-		r.Recorder.Eventf(pipelineTemplate, coreV1.EventTypeNormal, "SuccessfulPublished", "Published pipeline template: %q", req.Name)
-		logger.V(1).Info("publish", "pipeline template", pipelineTemplate)
 	}
 
 	if !pipelineTemplate.ObjectMeta.DeletionTimestamp.IsZero() {
 		if containsString(pipelineTemplate.ObjectMeta.Finalizers, myFinalizerName) {
-			if err := r.deleteTemplate(pipelineTemplate, logger); err != nil {
+			response, err := r.deleteTemplate(pipelineTemplate)
+			if err != nil {
 				return ctrl.Result{}, err
+			}
+			if response.Status == "TERMINAL" {
+				pipelineTemplate.Status.Conditions = append(pipelineTemplate.Status.Conditions, v1.PipelineTemplateCondition{
+					Type:   v1.PipelineTemplateDeletionFailed,
+					Reason: response.ExtractRetrofitError().ResponseBody,
+				})
+			} else {
+				pipelineTemplate.Status.Conditions = append(pipelineTemplate.Status.Conditions, v1.PipelineTemplateCondition{
+					Type: v1.PipelineTemplateDeletionComplete,
+				})
+				r.Recorder.Eventf(pipelineTemplate, coreV1.EventTypeNormal, "SuccessfulDeleted", "Deleted pipeline template: %q", req.Name)
+				logger.V(1).Info("delete", "pipeline template", pipelineTemplate)
 			}
 
 			pipelineTemplate.ObjectMeta.Finalizers = removeString(pipelineTemplate.ObjectMeta.Finalizers, myFinalizerName)
 			if err := r.Update(ctx, pipelineTemplate); err != nil {
 				return ctrl.Result{}, err
 			}
-			r.Recorder.Eventf(pipelineTemplate, coreV1.EventTypeNormal, "SuccessfulDeleted", "Deleted pipeline template: %q", req.Name)
-			logger.V(1).Info("delete", "pipeline template", pipelineTemplate)
 		}
 	}
 
 	return ctrl.Result{}, nil
 }
 
-func (r *PipelineTemplateReconciler) publishTemplate(pipelineTemplate *v1.PipelineTemplate, logger logr.Logger) (string, error) {
+func (r *PipelineTemplateReconciler) publishTemplate(pipelineTemplate *v1.PipelineTemplate) (string, *spinnaker.ExecutionResponse, error) {
 	templateMap := func() map[string]interface{} {
 		var m map[string]interface{}
 		_ = json.Unmarshal(pipelineTemplate.Spec, &m)
@@ -86,43 +107,31 @@ func (r *PipelineTemplateReconciler) publishTemplate(pipelineTemplate *v1.Pipeli
 		TemplateID: id,
 	})
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
 	response, err := r.SpinnakerClient.PollTaskStatus(ref.Ref, 0)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
-	if response.Status == "TERMINAL" {
-		logger.V(1).Info("Task Terminated", "response", response)
-	} else {
-		logger.V(1).Info("Task Completed", "status", response.Status)
-	}
-
-	return id, nil
+	return id, response, nil
 }
 
-func (r *PipelineTemplateReconciler) deleteTemplate(pipelineTemplate *v1.PipelineTemplate, logger logr.Logger) error {
+func (r *PipelineTemplateReconciler) deleteTemplate(pipelineTemplate *v1.PipelineTemplate) (*spinnaker.ExecutionResponse, error) {
 	id := pipelineTemplate.Status.SpinnakerResource.ID
 
 	ref, err := r.SpinnakerClient.DeleteTemplate(id)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	response, err := r.SpinnakerClient.PollTaskStatus(ref.Ref, 0)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	if response.Status == "TERMINAL" {
-		logger.V(1).Info("Task Terminated", "response", response)
-	} else {
-		logger.V(1).Info("Task Completed", "status", response.Status)
-	}
-
-	return nil
+	return response, nil
 }
 
 func (r *PipelineTemplateReconciler) SetupWithManager(mgr ctrl.Manager) error {

@@ -47,6 +47,20 @@ spec:
         status:
           description: PipelineStatus defines the observed state of Pipeline
           properties:
+            conditions:
+              items:
+                description: PipelineCondition defines condition struct
+                properties:
+                  reason:
+                    type: string
+                  type:
+                    description: PipelineConditionType defines codition type
+                    type: string
+                required:
+                - reason
+                - type
+                type: object
+              type: array
             hash:
               type: string
             spinnakerResource:

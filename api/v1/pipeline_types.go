@@ -12,9 +12,26 @@ type SpinnakerPipelineResource struct {
 	ID              string `json:"id,omitempty"`
 }
 
+// PipelineConditionType defines codition type
+type PipelineConditionType string
+
+const (
+	// PipelineCreationComplete means creation has finished
+	PipelineCreationComplete PipelineConditionType = "CreationComplete"
+	// PipelineDeletionComplete means deletion has finished
+	PipelineDeletionComplete PipelineConditionType = "DeletionComplete"
+)
+
+// PipelineCondition defines condition struct
+type PipelineCondition struct {
+	Type   PipelineConditionType `json:"type"`
+	Reason string                `json:"reason"`
+}
+
 // PipelineStatus defines the observed state of Pipeline
 type PipelineStatus struct {
 	SpinnakerResource SpinnakerPipelineResource `json:"spinnakerResource,omitempty"`
+	Conditions        []PipelineCondition       `json:"conditions,omitempty"`
 	Hash              string                    `json:"hash,omitempty"`
 }
 

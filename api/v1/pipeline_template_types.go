@@ -11,9 +11,30 @@ type SpinnakerPipelineTemplateResource struct {
 	ID string `json:"id,omitempty"`
 }
 
+// PipelineTemplateConditionType defines codition type
+type PipelineTemplateConditionType string
+
+const (
+	// PipelineTemplatePublishingComplete means publishing has finished
+	PipelineTemplatePublishingComplete PipelineTemplateConditionType = "PublishingComplete"
+	// PipelineTemplatePublishingFailed means publishing has failed
+	PipelineTemplatePublishingFailed PipelineTemplateConditionType = "PublishingFailed"
+	// PipelineTemplateDeletionComplete means deletion has finished
+	PipelineTemplateDeletionComplete PipelineTemplateConditionType = "DeletionComplete"
+	// PipelineTemplateDeletionFailed means deletion has failed
+	PipelineTemplateDeletionFailed PipelineTemplateConditionType = "DeletionFailed"
+)
+
+// PipelineTemplateCondition defines condition struct
+type PipelineTemplateCondition struct {
+	Type   PipelineTemplateConditionType `json:"type"`
+	Reason string                        `json:"reason"`
+}
+
 // PipelineTemplateStatus defines the observed state of PipelineTemplate
 type PipelineTemplateStatus struct {
 	SpinnakerResource SpinnakerPipelineTemplateResource `json:"spinnakerResource,omitempty"`
+	Conditions        []PipelineTemplateCondition       `json:"conditions,omitempty"`
 	Hash              string                            `json:"hash,omitempty"`
 }
 

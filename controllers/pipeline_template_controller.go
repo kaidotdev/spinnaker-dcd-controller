@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/json"
+	"fmt"
 	v1 "spinnaker-dcd-controller/api/v1"
 
 	"github.com/spinnaker/roer/spinnaker"
@@ -36,48 +37,27 @@ func (r *PipelineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result, e
 		return ctrl.Result{}, err
 	}
 
-	hash := sha256.Sum256(pipelineTemplate.Spec)
-	if pipelineTemplate.Status.Phase == "Deployed" {
-		oldHash := pipelineTemplate.Status.Hash
-		if hash == oldHash {
-			return ctrl.Result{}, nil
-		}
+	hash := fmt.Sprintf("%x", sha256.Sum256(pipelineTemplate.Spec))
+	oldHash := pipelineTemplate.Status.Hash
+	if hash != oldHash {
 		id, err := r.publishTemplate(pipelineTemplate, logger)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
 		pipelineTemplate.Status.SpinnakerResource.ID = id
 		pipelineTemplate.Status.Hash = hash
-
-		if err := r.Update(ctx, pipelineTemplate); err != nil {
-			return ctrl.Result{}, err
-		}
-		r.Recorder.Eventf(pipelineTemplate, coreV1.EventTypeNormal, "SuccessfulUpdated", "Updated pipeline template: %q", req.Name)
-		logger.V(1).Info("update", "pipeline template", pipelineTemplate)
-	} else {
-		id, err := r.publishTemplate(pipelineTemplate, logger)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-		pipelineTemplate.Status.SpinnakerResource.ID = id
-		pipelineTemplate.Status.Hash = hash
-		pipelineTemplate.Status.Phase = "Deployed"
-
-		if err := r.Update(ctx, pipelineTemplate); err != nil {
-			return ctrl.Result{}, err
-		}
-		r.Recorder.Eventf(pipelineTemplate, coreV1.EventTypeNormal, "SuccessfulCreated", "Created pipeline template: %q", req.Name)
-		logger.V(1).Info("create", "pipeline template", pipelineTemplate)
-	}
-
-	if pipelineTemplate.ObjectMeta.DeletionTimestamp.IsZero() {
 		if !containsString(pipelineTemplate.ObjectMeta.Finalizers, myFinalizerName) {
 			pipelineTemplate.ObjectMeta.Finalizers = append(pipelineTemplate.ObjectMeta.Finalizers, myFinalizerName)
-			if err := r.Update(ctx, pipelineTemplate); err != nil {
-				return ctrl.Result{}, err
-			}
 		}
-	} else {
+
+		if err := r.Update(ctx, pipelineTemplate); err != nil {
+			return ctrl.Result{}, err
+		}
+		r.Recorder.Eventf(pipelineTemplate, coreV1.EventTypeNormal, "SuccessfulPublished", "Published pipeline template: %q", req.Name)
+		logger.V(1).Info("publish", "pipeline template", pipelineTemplate)
+	}
+
+	if !pipelineTemplate.ObjectMeta.DeletionTimestamp.IsZero() {
 		if containsString(pipelineTemplate.ObjectMeta.Finalizers, myFinalizerName) {
 			if err := r.deleteTemplate(pipelineTemplate, logger); err != nil {
 				return ctrl.Result{}, err
@@ -90,8 +70,6 @@ func (r *PipelineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result, e
 			r.Recorder.Eventf(pipelineTemplate, coreV1.EventTypeNormal, "SuccessfulDeleted", "Deleted pipeline template: %q", req.Name)
 			logger.V(1).Info("delete", "pipeline template", pipelineTemplate)
 		}
-
-		return ctrl.Result{}, nil
 	}
 
 	return ctrl.Result{}, nil

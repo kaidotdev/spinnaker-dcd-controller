@@ -9,8 +9,8 @@ metadata:
   name: applications.spinnaker.kaidotdev.github.io
 spec:
   additionalPrinterColumns:
-  - JSONPath: .status.phase
-    name: PHASE
+  - JSONPath: .status.spinnakerResource.applicationName
+    name: SPINNAKER-APPLICATION-NAME
     type: string
   group: spinnaker.kaidotdev.github.io
   names:
@@ -44,7 +44,7 @@ spec:
         status:
           description: ApplicationStatus defines the observed state of Application
           properties:
-            phase:
+            hash:
               type: string
             spinnakerResource:
               description: SpinnakerApplicationResource defines the resource of Spinnaker

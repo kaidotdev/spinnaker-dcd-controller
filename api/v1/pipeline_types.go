@@ -15,13 +15,13 @@ type SpinnakerPipelineResource struct {
 // PipelineStatus defines the observed state of Pipeline
 type PipelineStatus struct {
 	SpinnakerResource SpinnakerPipelineResource `json:"spinnakerResource,omitempty"`
-	Hash              [32]byte                  `json:"hash,omitempty"`
-	Phase             string                    `json:"phase,omitempty"`
+	Hash              string                    `json:"hash,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:scope=Cluster
-// +kubebuilder:printcolumn:name="PHASE",type=string,JSONPath=`.status.phase`
+// +kubebuilder:printcolumn:name="SPINNAKER-APPLICATION-NAME",type=string,JSONPath=`.status.spinnakerResource.applicationName`
+// +kubebuilder:printcolumn:name="SPINNAKER-PIPELINE-ID",type=string,JSONPath=`.status.spinnakerResource.id`
 
 // Pipeline is the schema for Spinnaker Pipeline
 type Pipeline struct {

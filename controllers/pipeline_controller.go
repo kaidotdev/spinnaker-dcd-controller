@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/json"
+	"fmt"
 	v1 "spinnaker-dcd-controller/api/v1"
 
 	"github.com/spinnaker/roer"
@@ -45,49 +46,27 @@ func (r *PipelineReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, err
 	}
 
-	hash := sha256.Sum256(pipeline.Spec)
-	if pipeline.Status.Phase == "Deployed" {
-		oldHash := pipeline.Status.Hash
-		if hash == oldHash {
-			return ctrl.Result{}, nil
-		}
-
+	hash := fmt.Sprintf("%x", sha256.Sum256(pipeline.Spec))
+	oldHash := pipeline.Status.Hash
+	if oldHash == "" { // cannot update
 		if err := r.SpinnakerClient.SavePipelineConfig(pipelineConfig); err != nil {
 			return ctrl.Result{}, err
 		}
 		pipeline.Status.SpinnakerResource.ApplicationName = pipelineConfig.Application
 		pipeline.Status.SpinnakerResource.ID = pipelineConfig.ID
 		pipeline.Status.Hash = hash
+		if !containsString(pipeline.ObjectMeta.Finalizers, myFinalizerName) {
+			pipeline.ObjectMeta.Finalizers = append(pipeline.ObjectMeta.Finalizers, myFinalizerName)
+		}
 		if err := r.Update(ctx, pipeline); err != nil {
 			return ctrl.Result{}, err
 		}
 
-		r.Recorder.Eventf(pipeline, coreV1.EventTypeNormal, "SuccessfulUpdated", "Updated pipeline: %q", req.Name)
-		logger.V(1).Info("update", "pipeline", pipeline)
-	} else {
-		if err := r.SpinnakerClient.SavePipelineConfig(pipelineConfig); err != nil {
-			return ctrl.Result{}, err
-		}
-		pipeline.Status.SpinnakerResource.ApplicationName = pipelineConfig.Application
-		pipeline.Status.SpinnakerResource.ID = pipelineConfig.ID
-		pipeline.Status.Hash = hash
-		pipeline.Status.Phase = "Deployed"
-
-		if err := r.Update(ctx, pipeline); err != nil {
-			return ctrl.Result{}, err
-		}
 		r.Recorder.Eventf(pipeline, coreV1.EventTypeNormal, "SuccessfulCreated", "Created pipeline: %q", req.Name)
 		logger.V(1).Info("create", "pipeline", pipeline)
 	}
 
-	if pipeline.ObjectMeta.DeletionTimestamp.IsZero() {
-		if !containsString(pipeline.ObjectMeta.Finalizers, myFinalizerName) {
-			pipeline.ObjectMeta.Finalizers = append(pipeline.ObjectMeta.Finalizers, myFinalizerName)
-			if err := r.Update(ctx, pipeline); err != nil {
-				return ctrl.Result{}, err
-			}
-		}
-	} else {
+	if !pipeline.ObjectMeta.DeletionTimestamp.IsZero() {
 		if containsString(pipeline.ObjectMeta.Finalizers, myFinalizerName) {
 			if err := r.SpinnakerClient.DeletePipeline(
 				pipeline.Status.SpinnakerResource.ApplicationName,
@@ -103,8 +82,6 @@ func (r *PipelineReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			r.Recorder.Eventf(pipeline, coreV1.EventTypeNormal, "SuccessfulDeleted", "Deleted pipeline: %q", req.Name)
 			logger.V(1).Info("delete", "pipeline", pipeline)
 		}
-
-		return ctrl.Result{}, nil
 	}
 
 	return ctrl.Result{}, nil

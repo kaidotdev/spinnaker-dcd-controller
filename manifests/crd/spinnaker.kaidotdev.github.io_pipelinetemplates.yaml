@@ -9,8 +9,8 @@ metadata:
   name: pipelinetemplates.spinnaker.kaidotdev.github.io
 spec:
   additionalPrinterColumns:
-  - JSONPath: .status.phase
-    name: PHASE
+  - JSONPath: .status.spinnakerResource.id
+    name: SPINNAKER-PIPELINE-TEMPLATE-ID
     type: string
   group: spinnaker.kaidotdev.github.io
   names:
@@ -44,7 +44,7 @@ spec:
         status:
           description: PipelineTemplateStatus defines the observed state of PipelineTemplate
           properties:
-            phase:
+            hash:
               type: string
             spinnakerResource:
               description: SpinnakerPipelineTemplateResource defines the resource

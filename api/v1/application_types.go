@@ -14,12 +14,12 @@ type SpinnakerApplicationResource struct {
 // ApplicationStatus defines the observed state of Application
 type ApplicationStatus struct {
 	SpinnakerResource SpinnakerApplicationResource `json:"spinnakerResource,omitempty"`
-	Phase             string                       `json:"phase,omitempty"`
+	Hash              string                       `json:"hash,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:scope=Cluster
-// +kubebuilder:printcolumn:name="PHASE",type=string,JSONPath=`.status.phase`
+// +kubebuilder:printcolumn:name="SPINNAKER-APPLICATION-NAME",type=string,JSONPath=`.status.spinnakerResource.applicationName`
 
 // Application is the schema for Spinnaker Application
 type Application struct {

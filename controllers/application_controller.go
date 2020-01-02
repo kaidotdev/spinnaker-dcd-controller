@@ -2,7 +2,9 @@ package controllers
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/json"
+	"fmt"
 	v1 "spinnaker-dcd-controller/api/v1"
 
 	"github.com/spinnaker/roer/spinnaker"
@@ -35,13 +37,16 @@ func (r *ApplicationReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		return ctrl.Result{}, err
 	}
 
-	if application.Status.Phase != "Deployed" {
+	hash := fmt.Sprintf("%x", sha256.Sum256(application.Spec))
+	oldHash := application.Status.Hash
+	if oldHash == "" { // cannot update
 		task := r.buildCreateTask(req.Name, application)
 		if err := r.submitTask(req.Name, task, logger); err != nil {
 			return ctrl.Result{}, err
 		}
 		application.Status.SpinnakerResource.ApplicationName = req.Name
-		application.Status.Phase = "Deployed"
+		application.Status.Hash = hash
+		application.ObjectMeta.Finalizers = append(application.ObjectMeta.Finalizers, myFinalizerName)
 
 		if err := r.Update(ctx, application); err != nil {
 			return ctrl.Result{}, err
@@ -50,14 +55,7 @@ func (r *ApplicationReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		logger.V(1).Info("create", "application", application)
 	}
 
-	if application.ObjectMeta.DeletionTimestamp.IsZero() {
-		if !containsString(application.ObjectMeta.Finalizers, myFinalizerName) {
-			application.ObjectMeta.Finalizers = append(application.ObjectMeta.Finalizers, myFinalizerName)
-			if err := r.Update(ctx, application); err != nil {
-				return ctrl.Result{}, err
-			}
-		}
-	} else {
+	if !application.ObjectMeta.DeletionTimestamp.IsZero() {
 		if containsString(application.ObjectMeta.Finalizers, myFinalizerName) {
 			task := r.buildDeleteTask(req.Name, application)
 			if err := r.submitTask(req.Name, task, logger); err != nil {
@@ -71,8 +69,6 @@ func (r *ApplicationReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 			r.Recorder.Eventf(application, coreV1.EventTypeNormal, "SuccessfulDeleted", "Deleted application: %q", req.Name)
 			logger.V(1).Info("delete", "application", application)
 		}
-
-		return ctrl.Result{}, nil
 	}
 
 	return ctrl.Result{}, nil

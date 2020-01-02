@@ -39,7 +39,7 @@ func (r *ApplicationReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 
 	hash := fmt.Sprintf("%x", sha256.Sum256(application.Spec))
 	oldHash := application.Status.Hash
-	if oldHash == "" { // cannot update
+	if oldHash == "" { // cannot update application
 		task := r.buildCreateTask(req.Name, application)
 		if err := r.submitTask(req.Name, task, logger); err != nil {
 			return ctrl.Result{}, err

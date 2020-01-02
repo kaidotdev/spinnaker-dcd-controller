@@ -48,7 +48,7 @@ func (r *PipelineReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	hash := fmt.Sprintf("%x", sha256.Sum256(pipeline.Spec))
 	oldHash := pipeline.Status.Hash
-	if oldHash == "" { // cannot update
+	if oldHash == "" { // cannot update pipeline
 		if err := r.SpinnakerClient.SavePipelineConfig(pipelineConfig); err != nil {
 			return ctrl.Result{}, err
 		}

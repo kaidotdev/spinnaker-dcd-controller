@@ -48,13 +48,13 @@ spec:
               items:
                 description: PipelineTemplateCondition defines condition struct
                 properties:
-                  reason:
+                  status:
                     type: string
                   type:
                     description: PipelineTemplateConditionType defines codition type
                     type: string
                 required:
-                - reason
+                - status
                 - type
                 type: object
               type: array

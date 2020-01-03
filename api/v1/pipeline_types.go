@@ -25,7 +25,7 @@ const (
 // PipelineCondition defines condition struct
 type PipelineCondition struct {
 	Type   PipelineConditionType `json:"type"`
-	Reason string                `json:"reason"`
+	Status string                `json:"status"`
 }
 
 // PipelineStatus defines the observed state of Pipeline

@@ -50,12 +50,13 @@ func (r *ApplicationReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		application.ObjectMeta.Finalizers = append(application.ObjectMeta.Finalizers, myFinalizerName)
 		if response.Status == "TERMINAL" {
 			application.Status.Conditions = append(application.Status.Conditions, v1.ApplicationCondition{
-				Type:   v1.ApplicationCreationFailed,
-				Reason: response.ExtractRetrofitError().ResponseBody,
+				Type:   v1.ApplicationCreationComplete,
+				Status: "False",
 			})
 		} else {
 			application.Status.Conditions = append(application.Status.Conditions, v1.ApplicationCondition{
-				Type: v1.ApplicationCreationComplete,
+				Type:   v1.ApplicationCreationComplete,
+				Status: "True",
 			})
 			r.Recorder.Eventf(application, coreV1.EventTypeNormal, "SuccessfulCreated", "Created application: %q", req.Name)
 			logger.V(1).Info("create", "application", application)
@@ -77,12 +78,13 @@ func (r *ApplicationReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 			application.ObjectMeta.Finalizers = removeString(application.ObjectMeta.Finalizers, myFinalizerName)
 			if response.Status == "TERMINAL" {
 				application.Status.Conditions = append(application.Status.Conditions, v1.ApplicationCondition{
-					Type:   v1.ApplicationDeletionFailed,
-					Reason: response.ExtractRetrofitError().ResponseBody,
+					Type:   v1.ApplicationDeletionComplete,
+					Status: "False",
 				})
 			} else {
 				application.Status.Conditions = append(application.Status.Conditions, v1.ApplicationCondition{
-					Type: v1.ApplicationDeletionComplete,
+					Type:   v1.ApplicationDeletionComplete,
+					Status: "True",
 				})
 				r.Recorder.Eventf(application, coreV1.EventTypeNormal, "SuccessfulDeleted", "Deleted application: %q", req.Name)
 				logger.V(1).Info("delete", "application", application)

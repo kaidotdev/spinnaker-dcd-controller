@@ -17,18 +17,14 @@ type PipelineTemplateConditionType string
 const (
 	// PipelineTemplatePublishingComplete means publishing has finished
 	PipelineTemplatePublishingComplete PipelineTemplateConditionType = "PublishingComplete"
-	// PipelineTemplatePublishingFailed means publishing has failed
-	PipelineTemplatePublishingFailed PipelineTemplateConditionType = "PublishingFailed"
 	// PipelineTemplateDeletionComplete means deletion has finished
 	PipelineTemplateDeletionComplete PipelineTemplateConditionType = "DeletionComplete"
-	// PipelineTemplateDeletionFailed means deletion has failed
-	PipelineTemplateDeletionFailed PipelineTemplateConditionType = "DeletionFailed"
 )
 
 // PipelineTemplateCondition defines condition struct
 type PipelineTemplateCondition struct {
 	Type   PipelineTemplateConditionType `json:"type"`
-	Reason string                        `json:"reason"`
+	Status string                        `json:"status"`
 }
 
 // PipelineTemplateStatus defines the observed state of PipelineTemplate

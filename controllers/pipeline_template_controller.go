@@ -51,12 +51,13 @@ func (r *PipelineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result, e
 		}
 		if response.Status == "TERMINAL" {
 			pipelineTemplate.Status.Conditions = append(pipelineTemplate.Status.Conditions, v1.PipelineTemplateCondition{
-				Type:   v1.PipelineTemplatePublishingFailed,
-				Reason: response.ExtractRetrofitError().ResponseBody,
+				Type:   v1.PipelineTemplatePublishingComplete,
+				Status: "False",
 			})
 		} else {
 			pipelineTemplate.Status.Conditions = append(pipelineTemplate.Status.Conditions, v1.PipelineTemplateCondition{
-				Type: v1.PipelineTemplatePublishingComplete,
+				Type:   v1.PipelineTemplatePublishingComplete,
+				Status: "True",
 			})
 			r.Recorder.Eventf(pipelineTemplate, coreV1.EventTypeNormal, "SuccessfulPublished", "Published pipeline template: %q", req.Name)
 			logger.V(1).Info("publish", "pipeline template", pipelineTemplate)
@@ -75,12 +76,13 @@ func (r *PipelineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result, e
 			}
 			if response.Status == "TERMINAL" {
 				pipelineTemplate.Status.Conditions = append(pipelineTemplate.Status.Conditions, v1.PipelineTemplateCondition{
-					Type:   v1.PipelineTemplateDeletionFailed,
-					Reason: response.ExtractRetrofitError().ResponseBody,
+					Type:   v1.PipelineTemplateDeletionComplete,
+					Status: "False",
 				})
 			} else {
 				pipelineTemplate.Status.Conditions = append(pipelineTemplate.Status.Conditions, v1.PipelineTemplateCondition{
-					Type: v1.PipelineTemplateDeletionComplete,
+					Type:   v1.PipelineTemplateDeletionComplete,
+					Status: "True",
 				})
 				r.Recorder.Eventf(pipelineTemplate, coreV1.EventTypeNormal, "SuccessfulDeleted", "Deleted pipeline template: %q", req.Name)
 				logger.V(1).Info("delete", "pipeline template", pipelineTemplate)

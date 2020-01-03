@@ -59,7 +59,8 @@ func (r *PipelineReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			pipeline.ObjectMeta.Finalizers = append(pipeline.ObjectMeta.Finalizers, myFinalizerName)
 		}
 		pipeline.Status.Conditions = append(pipeline.Status.Conditions, v1.PipelineCondition{
-			Type: v1.PipelineCreationComplete,
+			Type:   v1.PipelineCreationComplete,
+			Status: "True",
 		})
 		r.Recorder.Eventf(pipeline, coreV1.EventTypeNormal, "SuccessfulCreated", "Created pipeline: %q", req.Name)
 		logger.V(1).Info("create", "pipeline", pipeline)
@@ -77,7 +78,8 @@ func (r *PipelineReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 				return ctrl.Result{}, err
 			}
 			pipeline.Status.Conditions = append(pipeline.Status.Conditions, v1.PipelineCondition{
-				Type: v1.PipelineDeletionComplete,
+				Type:   v1.PipelineDeletionComplete,
+				Status: "True",
 			})
 			r.Recorder.Eventf(pipeline, coreV1.EventTypeNormal, "SuccessfulDeleted", "Deleted pipeline: %q", req.Name)
 			logger.V(1).Info("delete", "pipeline", pipeline)

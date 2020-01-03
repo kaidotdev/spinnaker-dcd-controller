@@ -48,13 +48,13 @@ spec:
               items:
                 description: ApplicationCondition defines condition struct
                 properties:
-                  reason:
+                  status:
                     type: string
                   type:
                     description: ApplicationConditionType defines codition type
                     type: string
                 required:
-                - reason
+                - status
                 - type
                 type: object
               type: array

@@ -53,7 +53,7 @@ func (r *PipelineReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			return ctrl.Result{}, err
 		}
 		pipeline.Status.SpinnakerResource.ApplicationName = pipelineConfig.Application
-		pipeline.Status.SpinnakerResource.ID = pipelineConfig.ID
+		pipeline.Status.SpinnakerResource.ID = pipelineConfig.Name
 		pipeline.Status.Hash = hash
 		if !containsString(pipeline.ObjectMeta.Finalizers, myFinalizerName) {
 			pipeline.ObjectMeta.Finalizers = append(pipeline.ObjectMeta.Finalizers, myFinalizerName)

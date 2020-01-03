@@ -4,7 +4,7 @@ metadata:
   name: sample
 spec:
   schema: "1"
-  id: sample-deploy
+  id: sample
   metadata:
     description: This template does not have a description
     name: deploy

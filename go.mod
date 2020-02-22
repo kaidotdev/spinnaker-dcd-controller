@@ -7,11 +7,12 @@ require (
 	github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d // indirect
 	github.com/go-logr/logr v0.1.0
 	github.com/google/uuid v1.1.1
+	github.com/instrumenta/kubeval v0.0.0-20190901100547-eae975a0031c // indirect
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/sirupsen/logrus v1.4.2
 	github.com/spinnaker/roer v0.11.3
 	github.com/urfave/cli v1.22.2 // indirect
-	golang.org/x/tools v0.0.0-20191227053925-7b8e75db28f4 // indirect
+	golang.org/x/tools v0.0.0-20200214225126-5916a50871fb // indirect
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6 // indirect
 	k8s.io/api v0.0.0-20190918155943-95b840bb6a1f
 	k8s.io/apimachinery v0.0.0-20190913080033-27d36303b655

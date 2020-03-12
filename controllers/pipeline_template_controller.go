@@ -37,38 +37,38 @@ func (r *PipelineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result, e
 		return ctrl.Result{}, err
 	}
 
-	hash := fmt.Sprintf("%x", sha256.Sum256(pipelineTemplate.Spec))
-	oldHash := pipelineTemplate.Status.Hash
-	if hash != oldHash {
-		id, response, err := r.publishTemplate(pipelineTemplate)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-		pipelineTemplate.Status.SpinnakerResource.ID = id
-		pipelineTemplate.Status.Hash = hash
-		if !containsString(pipelineTemplate.ObjectMeta.Finalizers, myFinalizerName) {
-			pipelineTemplate.ObjectMeta.Finalizers = append(pipelineTemplate.ObjectMeta.Finalizers, myFinalizerName)
-		}
-		if response.Status == "TERMINAL" {
-			pipelineTemplate.Status.Conditions = append(pipelineTemplate.Status.Conditions, v1.PipelineTemplateCondition{
-				Type:   v1.PipelineTemplatePublishingComplete,
-				Status: "False",
-			})
-		} else {
-			pipelineTemplate.Status.Conditions = append(pipelineTemplate.Status.Conditions, v1.PipelineTemplateCondition{
-				Type:   v1.PipelineTemplatePublishingComplete,
-				Status: "True",
-			})
-			r.Recorder.Eventf(pipelineTemplate, coreV1.EventTypeNormal, "SuccessfulPublished", "Published pipeline template: %q", req.Name)
-			logger.V(1).Info("publish", "pipeline template", pipelineTemplate)
-		}
+	if pipelineTemplate.ObjectMeta.DeletionTimestamp.IsZero() {
+		hash := fmt.Sprintf("%x", sha256.Sum256(pipelineTemplate.Spec))
+		oldHash := pipelineTemplate.Status.Hash
+		if hash != oldHash {
+			id, response, err := r.publishTemplate(pipelineTemplate)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+			pipelineTemplate.Status.SpinnakerResource.ID = id
+			pipelineTemplate.Status.Hash = hash
+			if !containsString(pipelineTemplate.ObjectMeta.Finalizers, myFinalizerName) {
+				pipelineTemplate.ObjectMeta.Finalizers = append(pipelineTemplate.ObjectMeta.Finalizers, myFinalizerName)
+			}
+			if response.Status == "TERMINAL" {
+				pipelineTemplate.Status.Conditions = append(pipelineTemplate.Status.Conditions, v1.PipelineTemplateCondition{
+					Type:   v1.PipelineTemplatePublishingComplete,
+					Status: "False",
+				})
+			} else {
+				pipelineTemplate.Status.Conditions = append(pipelineTemplate.Status.Conditions, v1.PipelineTemplateCondition{
+					Type:   v1.PipelineTemplatePublishingComplete,
+					Status: "True",
+				})
+				r.Recorder.Eventf(pipelineTemplate, coreV1.EventTypeNormal, "SuccessfulPublished", "Published pipeline template: %q", req.Name)
+				logger.V(1).Info("publish", "pipeline template", pipelineTemplate)
+			}
 
-		if err := r.Update(ctx, pipelineTemplate); err != nil {
-			return ctrl.Result{}, err
+			if err := r.Update(ctx, pipelineTemplate); err != nil {
+				return ctrl.Result{}, err
+			}
 		}
-	}
-
-	if !pipelineTemplate.ObjectMeta.DeletionTimestamp.IsZero() {
+	} else {
 		if containsString(pipelineTemplate.ObjectMeta.Finalizers, myFinalizerName) {
 			response, err := r.deleteTemplate(pipelineTemplate)
 			if err != nil {

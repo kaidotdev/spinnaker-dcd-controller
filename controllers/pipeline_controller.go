@@ -41,35 +41,34 @@ func (r *PipelineReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, err
 	}
 
-	pipelineConfig, err := r.buildPipelineConfig(pipeline)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	hash := fmt.Sprintf("%x", sha256.Sum256(pipeline.Spec))
-	oldHash := pipeline.Status.Hash
-	if oldHash == "" { // cannot update pipeline
-		if err := r.SpinnakerClient.SavePipelineConfig(pipelineConfig); err != nil {
-			return ctrl.Result{}, err
+	if pipeline.ObjectMeta.DeletionTimestamp.IsZero() {
+		hash := fmt.Sprintf("%x", sha256.Sum256(pipeline.Spec))
+		oldHash := pipeline.Status.Hash
+		if oldHash == "" { // cannot update pipeline
+			pipelineConfig, err := r.buildPipelineConfig(pipeline)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+			if err := r.SpinnakerClient.SavePipelineConfig(pipelineConfig); err != nil {
+				return ctrl.Result{}, err
+			}
+			pipeline.Status.SpinnakerResource.ApplicationName = pipelineConfig.Application
+			pipeline.Status.SpinnakerResource.ID = pipelineConfig.Name
+			pipeline.Status.Hash = hash
+			if !containsString(pipeline.ObjectMeta.Finalizers, myFinalizerName) {
+				pipeline.ObjectMeta.Finalizers = append(pipeline.ObjectMeta.Finalizers, myFinalizerName)
+			}
+			pipeline.Status.Conditions = append(pipeline.Status.Conditions, v1.PipelineCondition{
+				Type:   v1.PipelineCreationComplete,
+				Status: "True",
+			})
+			r.Recorder.Eventf(pipeline, coreV1.EventTypeNormal, "SuccessfulCreated", "Created pipeline: %q", req.Name)
+			logger.V(1).Info("create", "pipeline", pipeline)
+			if err := r.Update(ctx, pipeline); err != nil {
+				return ctrl.Result{}, err
+			}
 		}
-		pipeline.Status.SpinnakerResource.ApplicationName = pipelineConfig.Application
-		pipeline.Status.SpinnakerResource.ID = pipelineConfig.Name
-		pipeline.Status.Hash = hash
-		if !containsString(pipeline.ObjectMeta.Finalizers, myFinalizerName) {
-			pipeline.ObjectMeta.Finalizers = append(pipeline.ObjectMeta.Finalizers, myFinalizerName)
-		}
-		pipeline.Status.Conditions = append(pipeline.Status.Conditions, v1.PipelineCondition{
-			Type:   v1.PipelineCreationComplete,
-			Status: "True",
-		})
-		r.Recorder.Eventf(pipeline, coreV1.EventTypeNormal, "SuccessfulCreated", "Created pipeline: %q", req.Name)
-		logger.V(1).Info("create", "pipeline", pipeline)
-		if err := r.Update(ctx, pipeline); err != nil {
-			return ctrl.Result{}, err
-		}
-	}
-
-	if !pipeline.ObjectMeta.DeletionTimestamp.IsZero() {
+	} else {
 		if containsString(pipeline.ObjectMeta.Finalizers, myFinalizerName) {
 			if err := r.SpinnakerClient.DeletePipeline(
 				pipeline.Status.SpinnakerResource.ApplicationName,

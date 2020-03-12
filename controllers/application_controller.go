@@ -37,37 +37,37 @@ func (r *ApplicationReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		return ctrl.Result{}, err
 	}
 
-	hash := fmt.Sprintf("%x", sha256.Sum256(application.Spec))
-	oldHash := application.Status.Hash
-	if oldHash == "" { // cannot update application
-		task := r.buildCreateTask(req.Name, application)
-		response, err := r.submitTask(req.Name, task)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-		application.Status.SpinnakerResource.ApplicationName = req.Name
-		application.Status.Hash = hash
-		application.ObjectMeta.Finalizers = append(application.ObjectMeta.Finalizers, myFinalizerName)
-		if response.Status == "TERMINAL" {
-			application.Status.Conditions = append(application.Status.Conditions, v1.ApplicationCondition{
-				Type:   v1.ApplicationCreationComplete,
-				Status: "False",
-			})
-		} else {
-			application.Status.Conditions = append(application.Status.Conditions, v1.ApplicationCondition{
-				Type:   v1.ApplicationCreationComplete,
-				Status: "True",
-			})
-			r.Recorder.Eventf(application, coreV1.EventTypeNormal, "SuccessfulCreated", "Created application: %q", req.Name)
-			logger.V(1).Info("create", "application", application)
-		}
+	if application.ObjectMeta.DeletionTimestamp.IsZero() {
+		hash := fmt.Sprintf("%x", sha256.Sum256(application.Spec))
+		oldHash := application.Status.Hash
+		if oldHash == "" { // cannot update application
+			task := r.buildCreateTask(req.Name, application)
+			response, err := r.submitTask(req.Name, task)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+			application.Status.SpinnakerResource.ApplicationName = req.Name
+			application.Status.Hash = hash
+			application.ObjectMeta.Finalizers = append(application.ObjectMeta.Finalizers, myFinalizerName)
+			if response.Status == "TERMINAL" {
+				application.Status.Conditions = append(application.Status.Conditions, v1.ApplicationCondition{
+					Type:   v1.ApplicationCreationComplete,
+					Status: "False",
+				})
+			} else {
+				application.Status.Conditions = append(application.Status.Conditions, v1.ApplicationCondition{
+					Type:   v1.ApplicationCreationComplete,
+					Status: "True",
+				})
+				r.Recorder.Eventf(application, coreV1.EventTypeNormal, "SuccessfulCreated", "Created application: %q", req.Name)
+				logger.V(1).Info("create", "application", application)
+			}
 
-		if err := r.Update(ctx, application); err != nil {
-			return ctrl.Result{}, err
+			if err := r.Update(ctx, application); err != nil {
+				return ctrl.Result{}, err
+			}
 		}
-	}
-
-	if !application.ObjectMeta.DeletionTimestamp.IsZero() {
+	} else {
 		if containsString(application.ObjectMeta.Finalizers, myFinalizerName) {
 			task := r.buildDeleteTask(req.Name, application)
 			response, err := r.submitTask(req.Name, task)

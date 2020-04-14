@@ -3,15 +3,15 @@ kind: Deployment
 metadata:
   name: spinnaker-dcd-controller
 spec:
-  selector:
-    matchLabels:
-      app: spinnaker-dcd-controller
   replicas: 4
   strategy:
     type: RollingUpdate
     rollingUpdate:
       maxSurge: 25%
       maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: spinnaker-dcd-controller
   template:
     metadata:
       labels:

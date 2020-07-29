@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	v1 "spinnaker-dcd-controller/api/v1"
+	"time"
 
 	"github.com/spinnaker/roer/spinnaker"
 
@@ -103,7 +104,7 @@ func (r *ApplicationReconciler) submitTask(applicationName string, task spinnake
 	if err != nil {
 		return nil, err
 	}
-	response, err := r.SpinnakerClient.PollTaskStatus(ref.Ref, 0)
+	response, err := r.SpinnakerClient.PollTaskStatus(ref.Ref, 30*time.Second)
 	if err != nil {
 		return nil, err
 	}

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	v1 "spinnaker-dcd-controller/api/v1"
+	"time"
 
 	"github.com/spinnaker/roer/spinnaker"
 
@@ -112,7 +113,7 @@ func (r *PipelineTemplateReconciler) publishTemplate(pipelineTemplate *v1.Pipeli
 		return "", nil, err
 	}
 
-	response, err := r.SpinnakerClient.PollTaskStatus(ref.Ref, 0)
+	response, err := r.SpinnakerClient.PollTaskStatus(ref.Ref, 30*time.Second)
 	if err != nil {
 		return "", nil, err
 	}
@@ -128,7 +129,7 @@ func (r *PipelineTemplateReconciler) deleteTemplate(pipelineTemplate *v1.Pipelin
 		return nil, err
 	}
 
-	response, err := r.SpinnakerClient.PollTaskStatus(ref.Ref, 0)
+	response, err := r.SpinnakerClient.PollTaskStatus(ref.Ref, 30*time.Second)
 	if err != nil {
 		return nil, err
 	}

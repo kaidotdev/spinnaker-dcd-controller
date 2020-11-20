@@ -72,3 +72,23 @@ rules:
       - get
       - list
       - patch
+  - apiGroups:
+      - spinnaker.kaidotdev.github.io
+    resources:
+      - canaryconfigs
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - spinnaker.kaidotdev.github.io
+    resources:
+      - canaryconfigs/status
+    verbs:
+      - get
+      - patch
+      - update

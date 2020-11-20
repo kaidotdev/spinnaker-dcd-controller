@@ -4,15 +4,17 @@ go 1.13
 
 require (
 	github.com/go-logr/logr v0.1.0
-	github.com/instrumenta/kubeval v0.0.0-20190901100547-eae975a0031c // indirect
+	github.com/mitchellh/cli v1.1.2 // indirect
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/sirupsen/logrus v1.4.2
 	github.com/spinnaker/roer v0.11.3
-	github.com/stretchr/testify v1.4.0 // indirect
+	github.com/spinnaker/spin v0.4.1-0.20201021165946-a6921971adf4
 	github.com/urfave/cli v1.22.2 // indirect
-	golang.org/x/tools v0.0.0-20200214225126-5916a50871fb // indirect
-	k8s.io/api v0.0.0-20190918155943-95b840bb6a1f
-	k8s.io/apimachinery v0.0.0-20190913080033-27d36303b655
-	k8s.io/client-go v0.0.0-20190918160344-1fbdaa4c8d90
+	golang.org/x/xerrors v0.0.0-20191011141410-1b5146add898
+	k8s.io/api v0.17.9
+	k8s.io/apimachinery v0.17.9
+	k8s.io/client-go v11.0.0+incompatible
 	sigs.k8s.io/controller-runtime v0.4.0
 )
+
+replace k8s.io/client-go => k8s.io/client-go v0.17.9

@@ -19,6 +19,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const (
+	ApplicationCreateTaskType string = "createApplication"
+	ApplicationUpdateTaskType string = "updateApplication"
+	ApplicationDeleteTaskType string = "deleteApplication"
+)
+
 type ApplicationReconciler struct {
 	client.Client
 	Log             logr.Logger
@@ -41,8 +47,15 @@ func (r *ApplicationReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	if application.ObjectMeta.DeletionTimestamp.IsZero() {
 		hash := fmt.Sprintf("%x", sha256.Sum256(application.Spec))
 		oldHash := application.Status.Hash
-		if oldHash == "" { // cannot update application
-			task := r.buildCreateTask(req.Name, application)
+		if oldHash != hash {
+			var taskType string
+			if oldHash == "" {
+				taskType = ApplicationCreateTaskType
+			} else {
+				taskType = ApplicationUpdateTaskType
+			}
+
+			task := r.buildTask(req.Name, application, taskType)
 			response, err := r.submitTask(req.Name, task)
 			if err != nil {
 				return ctrl.Result{}, err
@@ -70,7 +83,7 @@ func (r *ApplicationReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		}
 	} else {
 		if containsString(application.ObjectMeta.Finalizers, myFinalizerName) {
-			task := r.buildDeleteTask(req.Name, application)
+			task := r.buildTask(req.Name, application, ApplicationDeleteTaskType)
 			response, err := r.submitTask(req.Name, task)
 			if err != nil {
 				return ctrl.Result{}, err
@@ -112,10 +125,10 @@ func (r *ApplicationReconciler) submitTask(applicationName string, task spinnake
 	return response, nil
 }
 
-func (r *ApplicationReconciler) buildDeleteTask(applicationName string, application *v1.Application) spinnaker.Task {
+func (r *ApplicationReconciler) buildTask(applicationName string, application *v1.Application, taskType string) spinnaker.Task {
 	return spinnaker.Task{
 		Application: applicationName,
-		Description: "Delete Application: " + applicationName,
+		Description: fmt.Sprintf("Execute %s task: %s", taskType, applicationName),
 		Job: []interface{}{
 			spinnaker.ApplicationJob{
 				Application: func() map[string]interface{} {
@@ -124,25 +137,7 @@ func (r *ApplicationReconciler) buildDeleteTask(applicationName string, applicat
 					m["name"] = applicationName
 					return m
 				}(),
-				Type: "deleteApplication",
-			},
-		},
-	}
-}
-
-func (r *ApplicationReconciler) buildCreateTask(applicationName string, application *v1.Application) spinnaker.Task {
-	return spinnaker.Task{
-		Application: applicationName,
-		Description: "Create Application: " + applicationName,
-		Job: []interface{}{
-			spinnaker.ApplicationJob{
-				Application: func() map[string]interface{} {
-					var m map[string]interface{}
-					_ = json.Unmarshal(application.Spec, &m)
-					m["name"] = applicationName
-					return m
-				}(),
-				Type: "createApplication",
+				Type: taskType,
 			},
 		},
 	}

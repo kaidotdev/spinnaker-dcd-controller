@@ -11,6 +11,8 @@ import (
 	applicationV1 "spinnaker-dcd-controller/api/v1"
 
 	"github.com/spinnaker/roer/spinnaker"
+	"github.com/spinnaker/spin/cmd/gateclient"
+	"github.com/spinnaker/spin/cmd/output"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -89,10 +91,28 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "Pipeline")
 		os.Exit(1)
 	}
+	if err := (&controllers.CanaryConfigReconciler{
+		Client:          mgr.GetClient(),
+		Log:             ctrl.Log.WithName("controllers").WithName("CanaryConfig"),
+		Scheme:          mgr.GetScheme(),
+		Recorder:        mgr.GetEventRecorderFor("spinnaker-dcd-controller"),
+		SpinnakerClient: buildSpinGateClient(spinnakerEndpoint),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "CanaryConfig")
+		os.Exit(1)
+	}
 
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+}
+
+func buildSpinGateClient(spinnakerEndpoint string) gateclient.GatewayClient {
+	oft, _ := output.ParseOutputFormat("json")
+	ui := output.NewUI(true, true, oft, os.Stdout, os.Stderr)
+	gateClient, _ := gateclient.NewGateClient(ui, spinnakerEndpoint, "", "", false)
+
+	return *gateClient
 }

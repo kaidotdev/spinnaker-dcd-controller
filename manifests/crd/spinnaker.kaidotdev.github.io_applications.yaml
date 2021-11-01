@@ -1,17 +1,13 @@
 
 ---
-apiVersion: apiextensions.k8s.io/v1beta1
+apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.2.4
+    controller-gen.kubebuilder.io/version: v0.2.9
   creationTimestamp: null
   name: applications.spinnaker.kaidotdev.github.io
 spec:
-  additionalPrinterColumns:
-  - JSONPath: .status.spinnakerResource.applicationName
-    name: SPINNAKER-APPLICATION-NAME
-    type: string
   group: spinnaker.kaidotdev.github.io
   names:
     kind: Application
@@ -19,60 +15,65 @@ spec:
     plural: applications
     singular: application
   scope: Cluster
-  subresources: {}
-  validation:
-    openAPIV3Schema:
-      description: Application is the schema for Spinnaker Application
-      properties:
-        apiVersion:
-          description: 'APIVersion defines the versioned schema of this representation
-            of an object. Servers should convert recognized schemas to the latest
-            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-          type: string
-        kind:
-          description: 'Kind is a string value representing the REST resource this
-            object represents. Servers may infer this from the endpoint the client
-            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-          type: string
-        metadata:
-          type: object
-        spec:
-          description: RawMessage is a raw encoded JSON value. It implements Marshaler
-            and Unmarshaler and can be used to delay JSON decoding or precompute a
-            JSON encoding.
-          type: object
-        status:
-          description: ApplicationStatus defines the observed state of Application
-          properties:
-            conditions:
-              items:
-                description: ApplicationCondition defines condition struct
-                properties:
-                  status:
-                    type: string
-                  type:
-                    description: ApplicationConditionType defines codition type
-                    type: string
-                required:
-                - status
-                - type
-                type: object
-              type: array
-            hash:
-              type: string
-            spinnakerResource:
-              description: SpinnakerApplicationResource defines the resource of Spinnaker
-              properties:
-                applicationName:
-                  type: string
-              type: object
-          type: object
-      type: object
-  version: v1
   versions:
-  - name: v1
+  - additionalPrinterColumns:
+    - jsonPath: .status.spinnakerResource.applicationName
+      name: SPINNAKER-APPLICATION-NAME
+      type: string
+    name: v1
+    schema:
+      openAPIV3Schema:
+        description: Application is the schema for Spinnaker Application
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: RawMessage is a raw encoded JSON value. It implements Marshaler
+              and Unmarshaler and can be used to delay JSON decoding or precompute
+              a JSON encoding.
+            format: byte
+            type: string
+          status:
+            description: ApplicationStatus defines the observed state of Application
+            properties:
+              conditions:
+                items:
+                  description: ApplicationCondition defines condition struct
+                  properties:
+                    status:
+                      type: string
+                    type:
+                      description: ApplicationConditionType defines codition type
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
+              hash:
+                type: string
+              spinnakerResource:
+                description: SpinnakerApplicationResource defines the resource of
+                  Spinnaker
+                properties:
+                  applicationName:
+                    type: string
+                type: object
+            type: object
+        type: object
     served: true
     storage: true
+    subresources: {}
 status:
   acceptedNames:
     kind: ""

@@ -1,17 +1,13 @@
 
 ---
-apiVersion: apiextensions.k8s.io/v1beta1
+apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.2.4
+    controller-gen.kubebuilder.io/version: v0.2.9
   creationTimestamp: null
   name: pipelinetemplates.spinnaker.kaidotdev.github.io
 spec:
-  additionalPrinterColumns:
-  - JSONPath: .status.spinnakerResource.id
-    name: SPINNAKER-PIPELINE-TEMPLATE-ID
-    type: string
   group: spinnaker.kaidotdev.github.io
   names:
     kind: PipelineTemplate
@@ -19,61 +15,66 @@ spec:
     plural: pipelinetemplates
     singular: pipelinetemplate
   scope: Cluster
-  subresources: {}
-  validation:
-    openAPIV3Schema:
-      description: PipelineTemplate is the schema for Spinnaker PipelineTemplate
-      properties:
-        apiVersion:
-          description: 'APIVersion defines the versioned schema of this representation
-            of an object. Servers should convert recognized schemas to the latest
-            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-          type: string
-        kind:
-          description: 'Kind is a string value representing the REST resource this
-            object represents. Servers may infer this from the endpoint the client
-            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-          type: string
-        metadata:
-          type: object
-        spec:
-          description: RawMessage is a raw encoded JSON value. It implements Marshaler
-            and Unmarshaler and can be used to delay JSON decoding or precompute a
-            JSON encoding.
-          type: object
-        status:
-          description: PipelineTemplateStatus defines the observed state of PipelineTemplate
-          properties:
-            conditions:
-              items:
-                description: PipelineTemplateCondition defines condition struct
-                properties:
-                  status:
-                    type: string
-                  type:
-                    description: PipelineTemplateConditionType defines codition type
-                    type: string
-                required:
-                - status
-                - type
-                type: object
-              type: array
-            hash:
-              type: string
-            spinnakerResource:
-              description: SpinnakerPipelineTemplateResource defines the resource
-                of Spinnaker
-              properties:
-                id:
-                  type: string
-              type: object
-          type: object
-      type: object
-  version: v1
   versions:
-  - name: v1
+  - additionalPrinterColumns:
+    - jsonPath: .status.spinnakerResource.id
+      name: SPINNAKER-PIPELINE-TEMPLATE-ID
+      type: string
+    name: v1
+    schema:
+      openAPIV3Schema:
+        description: PipelineTemplate is the schema for Spinnaker PipelineTemplate
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: RawMessage is a raw encoded JSON value. It implements Marshaler
+              and Unmarshaler and can be used to delay JSON decoding or precompute
+              a JSON encoding.
+            format: byte
+            type: string
+          status:
+            description: PipelineTemplateStatus defines the observed state of PipelineTemplate
+            properties:
+              conditions:
+                items:
+                  description: PipelineTemplateCondition defines condition struct
+                  properties:
+                    status:
+                      type: string
+                    type:
+                      description: PipelineTemplateConditionType defines codition
+                        type
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
+              hash:
+                type: string
+              spinnakerResource:
+                description: SpinnakerPipelineTemplateResource defines the resource
+                  of Spinnaker
+                properties:
+                  id:
+                    type: string
+                type: object
+            type: object
+        type: object
     served: true
     storage: true
+    subresources: {}
 status:
   acceptedNames:
     kind: ""

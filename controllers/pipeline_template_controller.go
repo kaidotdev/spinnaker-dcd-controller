@@ -39,7 +39,7 @@ func (r *PipelineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result, e
 	}
 
 	if pipelineTemplate.ObjectMeta.DeletionTimestamp.IsZero() {
-		hash := fmt.Sprintf("%x", sha256.Sum256(pipelineTemplate.Spec))
+		hash := fmt.Sprintf("%x", sha256.Sum256(pipelineTemplate.Spec.Raw))
 		oldHash := pipelineTemplate.Status.Hash
 		if hash != oldHash {
 			id, response, err := r.publishTemplate(pipelineTemplate)
@@ -102,7 +102,7 @@ func (r *PipelineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result, e
 func (r *PipelineTemplateReconciler) publishTemplate(pipelineTemplate *v1.PipelineTemplate) (string, *spinnaker.ExecutionResponse, error) {
 	templateMap := func() map[string]interface{} {
 		var m map[string]interface{}
-		_ = json.Unmarshal(pipelineTemplate.Spec, &m)
+		_ = json.Unmarshal(pipelineTemplate.Spec.Raw, &m)
 		return m
 	}()
 	id := templateMap["id"].(string)

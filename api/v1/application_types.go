@@ -1,9 +1,8 @@
 package v1
 
 import (
-	"encoding/json"
-
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
 // SpinnakerApplicationResource defines the resource of Spinnaker
@@ -43,8 +42,9 @@ type Application struct {
 	metaV1.TypeMeta   `json:",inline"`
 	metaV1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   json.RawMessage   `json:"spec,omitempty"`
-	Status ApplicationStatus `json:"status,omitempty"`
+	// +kubebuilder:pruning:PreserveUnknownFields
+	Spec   runtime.RawExtension `json:"spec,omitempty"`
+	Status ApplicationStatus    `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true

@@ -40,11 +40,11 @@ func (r *CanaryConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 	}
 
 	if canaryConfig.ObjectMeta.DeletionTimestamp.IsZero() {
-		hash := fmt.Sprintf("%x", sha256.Sum256(canaryConfig.Spec))
+		hash := fmt.Sprintf("%x", sha256.Sum256(canaryConfig.Spec.Raw))
 		oldHash := canaryConfig.Status.Hash
 		if hash != oldHash {
 			var configJSON map[string]interface{}
-			_ = json.Unmarshal(canaryConfig.Spec, &configJSON)
+			_ = json.Unmarshal(canaryConfig.Spec.Raw, &configJSON)
 
 			if _, exists := configJSON["id"]; !exists {
 				return ctrl.Result{}, xerrors.New("required canary config key 'id' missing...")

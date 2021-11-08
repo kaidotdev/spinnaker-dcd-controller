@@ -45,7 +45,7 @@ func (r *ApplicationReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	}
 
 	if application.ObjectMeta.DeletionTimestamp.IsZero() {
-		hash := fmt.Sprintf("%x", sha256.Sum256(application.Spec))
+		hash := fmt.Sprintf("%x", sha256.Sum256(application.Spec.Raw))
 		oldHash := application.Status.Hash
 		if oldHash != hash {
 			var taskType string
@@ -133,7 +133,7 @@ func (r *ApplicationReconciler) buildTask(applicationName string, application *v
 			spinnaker.ApplicationJob{
 				Application: func() map[string]interface{} {
 					var m map[string]interface{}
-					_ = json.Unmarshal(application.Spec, &m)
+					_ = json.Unmarshal(application.Spec.Raw, &m)
 					m["name"] = applicationName
 					return m
 				}(),

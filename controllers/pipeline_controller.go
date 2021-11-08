@@ -42,7 +42,7 @@ func (r *PipelineReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	if pipeline.ObjectMeta.DeletionTimestamp.IsZero() {
-		hash := fmt.Sprintf("%x", sha256.Sum256(pipeline.Spec))
+		hash := fmt.Sprintf("%x", sha256.Sum256(pipeline.Spec.Raw))
 		oldHash := pipeline.Status.Hash
 		if oldHash == "" { // cannot update pipeline
 			pipelineConfig, err := r.buildPipelineConfig(pipeline)
@@ -97,7 +97,7 @@ func (r *PipelineReconciler) buildPipelineConfig(pipeline *v1.Pipeline) (spinnak
 	var roerConfiguration roer.PipelineConfiguration
 	if err := mapstructure.Decode(func() map[string]interface{} {
 		var m map[string]interface{}
-		_ = json.Unmarshal(pipeline.Spec, &m)
+		_ = json.Unmarshal(pipeline.Spec.Raw, &m)
 		return m
 	}(), &roerConfiguration); err != nil {
 		return spinnaker.PipelineConfig{}, err

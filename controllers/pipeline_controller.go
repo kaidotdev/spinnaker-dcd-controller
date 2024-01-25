@@ -67,6 +67,14 @@ func (r *PipelineReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			if err := r.Update(ctx, pipeline); err != nil {
 				return ctrl.Result{}, err
 			}
+
+			if pipeline.Annotations != nil && pipeline.Annotations["spinnaker.kaidotdev.github.io/execute-immediately"] == "true" {
+				if _, err := r.SpinnakerClient.ExecPipeline(pipeline.Status.SpinnakerResource.ApplicationName, pipeline.Status.SpinnakerResource.ID); err != nil {
+					r.Recorder.Eventf(pipeline, coreV1.EventTypeNormal, "ExecuteFailed", "Failed to execute pipeline: %q", req.Name)
+					return ctrl.Result{}, nil
+				}
+				r.Recorder.Eventf(pipeline, coreV1.EventTypeNormal, "SuccessfulExecuted", "Executed pipeline: %q", req.Name)
+			}
 		}
 	} else {
 		if containsString(pipeline.ObjectMeta.Finalizers, myFinalizerName) {

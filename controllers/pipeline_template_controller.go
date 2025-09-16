@@ -4,15 +4,21 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"regexp"
 	v1 "spinnaker-dcd-controller/api/v1"
+	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	"github.com/spinnaker/roer/spinnaker"
+	"golang.org/x/xerrors"
 
 	"github.com/go-logr/logr"
 	coreV1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -32,7 +38,7 @@ func (r *PipelineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result, e
 	logger := r.Log.WithValues("pipelineTemplate", req.NamespacedName)
 	ctx := context.Background()
 	if err := r.Get(ctx, req.NamespacedName, pipelineTemplate); err != nil {
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
 		return ctrl.Result{}, err
@@ -44,6 +50,9 @@ func (r *PipelineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result, e
 		if hash != oldHash {
 			id, response, err := r.publishTemplate(pipelineTemplate)
 			if err != nil {
+				if errors.Is(err, valueIsNotFoundError) {
+					return ctrl.Result{RequeueAfter: 60 * time.Second}, err
+				}
 				return ctrl.Result{}, err
 			}
 			pipelineTemplate.Status.SpinnakerResource.ID = id
@@ -100,11 +109,14 @@ func (r *PipelineTemplateReconciler) Reconcile(req ctrl.Request) (ctrl.Result, e
 }
 
 func (r *PipelineTemplateReconciler) publishTemplate(pipelineTemplate *v1.PipelineTemplate) (string, *spinnaker.ExecutionResponse, error) {
-	templateMap := func() map[string]interface{} {
-		var m map[string]interface{}
-		_ = json.Unmarshal(pipelineTemplate.Spec.Raw, &m)
-		return m
-	}()
+	processedYAML, err := r.processTemplateVariables(pipelineTemplate.Spec.Raw)
+	if err != nil {
+		return "", nil, xerrors.Errorf("failed to process template variables: %w", err)
+	}
+
+	var templateMap map[string]interface{}
+	_ = json.Unmarshal(processedYAML, &templateMap)
+
 	id := templateMap["id"].(string)
 	ref, err := r.SpinnakerClient.PublishTemplate(templateMap, spinnaker.PublishTemplateOptions{
 		TemplateID: id,
@@ -135,6 +147,64 @@ func (r *PipelineTemplateReconciler) deleteTemplate(pipelineTemplate *v1.Pipelin
 	}
 
 	return response, nil
+}
+
+var valueIsNotFoundError = errors.New("value is not found")
+
+func (r *PipelineTemplateReconciler) processTemplateVariables(yamlData []byte) (result []byte, err error) {
+	variablePattern := regexp.MustCompile(`\$\{([^}]+)\}`)
+
+	result = variablePattern.ReplaceAllFunc(yamlData, func(match []byte) []byte {
+		expression := string(match[2 : len(match)-1])
+
+		if strings.HasPrefix(expression, "ImportValue:") {
+			exportName := strings.TrimPrefix(expression, "ImportValue:")
+			exportValue, ierr := r.getCloudFormationExportValue(exportName)
+			if ierr != nil {
+				err = ierr
+				return match
+			}
+			return []byte(exportValue)
+		}
+
+		return match
+	})
+
+	return result, err
+}
+
+func (r *PipelineTemplateReconciler) getCloudFormationExportValue(exportName string) (string, error) {
+	ctx := context.Background()
+
+	configuration, err := config.LoadDefaultConfig(ctx)
+	if err != nil {
+		return "", xerrors.Errorf("failed to load AWS configuration: %w", err)
+	}
+	c := cloudformation.NewFromConfig(configuration)
+
+	input := &cloudformation.ListExportsInput{}
+	for {
+		output, err := c.ListExports(ctx, input)
+		if err != nil {
+			return "", xerrors.Errorf("failed to list CloudFormation exports: %w", err)
+		}
+
+		for _, export := range output.Exports {
+			if export.Name != nil && *export.Name == exportName {
+				if export.Value != nil {
+					return *export.Value, nil
+				}
+				return "", xerrors.Errorf("export value is nil for name: %s", exportName)
+			}
+		}
+
+		if output.NextToken == nil {
+			break
+		}
+		input.NextToken = output.NextToken
+	}
+
+	return "", xerrors.Errorf("CloudFormation export value not found for name %s: %w", exportName, valueIsNotFoundError)
 }
 
 func (r *PipelineTemplateReconciler) SetupWithManager(mgr ctrl.Manager) error {

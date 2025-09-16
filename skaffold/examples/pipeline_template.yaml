@@ -1,0 +1,21 @@
+apiVersion: skaffold.spinnaker.kaidotdev.github.io/v1
+kind: PipelineTemplate
+metadata:
+  name: skaffold-sample
+spec:
+  schema: "1"
+  id: skaffold-sample
+  metadata:
+    description: This template does not have a description
+    name: deploy
+    owner: anonymous
+    scopes:
+      - skaffold-sample
+  protect: false
+  variables:
+    - name: triggerEnabled
+      defaultValue: true
+  configuration:
+    concurrentExecutions:
+      limitConcurrent: true
+      parallel: false

@@ -1,0 +1,72 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namePrefix: skaffold-
+
+labels:
+  - includeSelectors: true
+    pairs:
+      variant: skaffold
+
+namespace: skaffold-spinnaker-dcd-controller
+
+resources:
+  - ../manifests
+  - namespace.yaml
+
+patches:
+  - path: patches/deployment.yaml
+  # CRD does not support namePrefix
+  - patch: |
+      - op: replace
+        path: /metadata/name
+        value: applications.skaffold.spinnaker.kaidotdev.github.io
+      - op: replace
+        path: /spec/group
+        value: skaffold.spinnaker.kaidotdev.github.io
+    target:
+      kind: CustomResourceDefinition
+      name: applications.spinnaker.kaidotdev.github.io
+  - patch: |
+      - op: replace
+        path: /metadata/name
+        value: canaryconfigs.skaffold.spinnaker.kaidotdev.github.io
+      - op: replace
+        path: /spec/group
+        value: skaffold.spinnaker.kaidotdev.github.io
+    target:
+      kind: CustomResourceDefinition
+      name: canaryconfigs.spinnaker.kaidotdev.github.io
+  - patch: |
+      - op: replace
+        path: /metadata/name
+        value: pipelines.skaffold.spinnaker.kaidotdev.github.io
+      - op: replace
+        path: /spec/group
+        value: skaffold.spinnaker.kaidotdev.github.io
+    target:
+      kind: CustomResourceDefinition
+      name: pipelines.spinnaker.kaidotdev.github.io
+  - patch: |
+      - op: replace
+        path: /metadata/name
+        value: pipelinetemplates.skaffold.spinnaker.kaidotdev.github.io
+      - op: replace
+        path: /spec/group
+        value: skaffold.spinnaker.kaidotdev.github.io
+    target:
+      kind: CustomResourceDefinition
+      name: pipelinetemplates.spinnaker.kaidotdev.github.io
+  - patch: |
+      - op: add
+        path: /rules/0
+        value:
+          apiGroups:
+            - skaffold.spinnaker.kaidotdev.github.io
+          resources:
+            - "*"
+          verbs:
+            - "*"
+    target:
+      kind: ClusterRole
+      name: spinnaker-dcd-controller

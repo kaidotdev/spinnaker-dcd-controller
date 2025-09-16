@@ -1,0 +1,6 @@
+apiVersion: skaffold.spinnaker.kaidotdev.github.io/v1
+kind: Application
+metadata:
+  name: skaffold-sample
+spec:
+  email: sample@kaidotdev.github.io

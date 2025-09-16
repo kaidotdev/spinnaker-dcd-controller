@@ -1,17 +1,18 @@
-apiVersion: skaffold/v1beta12
+apiVersion: skaffold/v4beta9
 kind: Config
 build:
+  tagPolicy:
+    inputDigest: {}
   artifacts:
-    - image: spinnaker-dcd-controller
+    - image: skaffold
       context: .
+      docker:
+        dockerfile: Dockerfile
+        buildArgs:
+          LD_FLAGS: ""
   local:
     useBuildkit: true
-deploy:
+manifests:
   kustomize:
-    path: patches
-#  kubectl:
-#    manifests:
-#      - patches
-#    flags:
-#      apply:
-#        - -k
+    paths:
+      - skaffold

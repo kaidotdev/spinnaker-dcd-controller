@@ -1,12 +1,8 @@
 # syntax=docker/dockerfile:experimental
 
-FROM golang:1.13-alpine as builder
+FROM golang:1.22-bullseye AS builder
 
 ENV CGO_ENABLED 0
-ENV GOOS linux
-ENV GOARCH amd64
-
-RUN apk update && apk upgrade
 
 WORKDIR /build/
 
@@ -21,6 +17,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build go build -trimpath -o /usr/l
 
 FROM gcr.io/distroless/static:nonroot
 COPY --from=builder /usr/local/bin/main /usr/local/bin/main
-USER nonroot:nonroot
+
+USER 65532
 
 ENTRYPOINT ["/usr/local/bin/main"]

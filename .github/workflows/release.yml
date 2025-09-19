@@ -13,10 +13,10 @@ jobs:
       IMAGE_NAME: spinnaker-dcd-controller
     steps:
       - name: Check out code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Cache docker build
         id: cache
-        uses: actions/cache@v1
+        uses: actions/cache@v4
         with:
           path: /home/runner/.cache/docker-build
           key: ${{ runner.os }}-docker-${{ hashFiles(format('{0}{1}', github.workspace, '/Dockerfile')) }}-${{ hashFiles(format('{0}{1}', github.workspace, '/go.sum')) }}-${{ hashFiles(format('{0}{1}', github.workspace, '/**/*.go')) }}

@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	v1 "spinnaker-dcd-controller/api/v1"
+	"strings"
+	"time"
 
 	"github.com/spinnaker/roer"
 
@@ -48,6 +50,14 @@ func (r *PipelineReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			pipelineConfig, err := r.buildPipelineConfig(pipeline)
 			if err != nil {
 				return ctrl.Result{}, err
+			}
+			published, err := r.isTemplatePublished(ctx, pipelineConfig)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+			if !published {
+				logger.V(1).Info("wait for pipeline template to be published")
+				return ctrl.Result{RequeueAfter: templatePublishingWaitInterval}, nil
 			}
 			if err := r.SpinnakerClient.SavePipelineConfig(pipelineConfig); err != nil {
 				return ctrl.Result{}, err
@@ -101,6 +111,36 @@ func (r *PipelineReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	return ctrl.Result{}, nil
 }
 
+const (
+	templateSourcePrefix           = "spinnaker://"
+	templatePublishingWaitInterval = 10 * time.Second
+	pipelineTemplateIDField        = "spec.id"
+)
+
+func (r *PipelineReconciler) isTemplatePublished(ctx context.Context, pipelineConfig spinnaker.PipelineConfig) (bool, error) {
+	roerConfiguration, ok := pipelineConfig.Config.(roer.PipelineConfiguration)
+	if !ok {
+		return true, nil
+	}
+	source := roerConfiguration.Pipeline.Template.Source
+	if !strings.HasPrefix(source, templateSourcePrefix) {
+		return true, nil
+	}
+	id := strings.TrimPrefix(source, templateSourcePrefix)
+	if id == "" {
+		return true, nil
+	}
+
+	pipelineTemplateList := &v1.PipelineTemplateList{}
+	if err := r.List(ctx, pipelineTemplateList, client.MatchingFields{pipelineTemplateIDField: id}); err != nil {
+		return false, err
+	}
+	if len(pipelineTemplateList.Items) == 0 {
+		return true, nil
+	}
+	return pipelineTemplateList.Items[0].Status.SpinnakerResource.ID != "", nil
+}
+
 func (r *PipelineReconciler) buildPipelineConfig(pipeline *v1.Pipeline) (spinnaker.PipelineConfig, error) {
 	var roerConfiguration roer.PipelineConfiguration
 	if err := mapstructure.Decode(func() map[string]interface{} {
@@ -114,5 +154,14 @@ func (r *PipelineReconciler) buildPipelineConfig(pipeline *v1.Pipeline) (spinnak
 }
 
 func (r *PipelineReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	if err := mgr.GetFieldIndexer().IndexField(&v1.PipelineTemplate{}, pipelineTemplateIDField, func(object runtime.Object) []string {
+		var template struct {
+			ID string `json:"id"`
+		}
+		_ = json.Unmarshal(object.(*v1.PipelineTemplate).Spec.Raw, &template)
+		return []string{template.ID}
+	}); err != nil {
+		return err
+	}
 	return ctrl.NewControllerManagedBy(mgr).For(&v1.Pipeline{}).Complete(r)
 }

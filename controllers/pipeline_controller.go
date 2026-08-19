@@ -51,13 +51,21 @@ func (r *PipelineReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			if err != nil {
 				return ctrl.Result{}, err
 			}
+			created, err := r.isApplicationCreated(ctx, pipelineConfig)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+			if !created {
+				logger.V(1).Info("wait for application to be created")
+				return ctrl.Result{RequeueAfter: dependencyWaitInterval}, nil
+			}
 			published, err := r.isTemplatePublished(ctx, pipelineConfig)
 			if err != nil {
 				return ctrl.Result{}, err
 			}
 			if !published {
 				logger.V(1).Info("wait for pipeline template to be published")
-				return ctrl.Result{RequeueAfter: templatePublishingWaitInterval}, nil
+				return ctrl.Result{RequeueAfter: dependencyWaitInterval}, nil
 			}
 			if err := r.SpinnakerClient.SavePipelineConfig(pipelineConfig); err != nil {
 				return ctrl.Result{}, err
@@ -112,10 +120,25 @@ func (r *PipelineReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 }
 
 const (
-	templateSourcePrefix           = "spinnaker://"
-	templatePublishingWaitInterval = 10 * time.Second
-	pipelineTemplateIDField        = "spec.id"
+	templateSourcePrefix    = "spinnaker://"
+	dependencyWaitInterval  = 10 * time.Second
+	pipelineTemplateIDField = "spec.id"
 )
+
+func (r *PipelineReconciler) isApplicationCreated(ctx context.Context, pipelineConfig spinnaker.PipelineConfig) (bool, error) {
+	if pipelineConfig.Application == "" {
+		return true, nil
+	}
+
+	application := &v1.Application{}
+	if err := r.Get(ctx, client.ObjectKey{Name: pipelineConfig.Application}, application); err != nil {
+		if errors.IsNotFound(err) {
+			return true, nil
+		}
+		return false, err
+	}
+	return application.Status.SpinnakerResource.ApplicationName != "", nil
+}
 
 func (r *PipelineReconciler) isTemplatePublished(ctx context.Context, pipelineConfig spinnaker.PipelineConfig) (bool, error) {
 	roerConfiguration, ok := pipelineConfig.Config.(roer.PipelineConfiguration)
